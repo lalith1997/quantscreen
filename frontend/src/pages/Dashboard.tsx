@@ -41,7 +41,7 @@ export default function Dashboard() {
     <div className="space-y-8 animate-fade-in">
       {/* Welcome Section */}
       <div>
-        <h1 className="text-3xl font-bold">Welcome to QuantScreen</h1>
+        <h1 className="text-3xl font-bold">Welcome to FinCentral</h1>
         <p className="text-text-secondary mt-2">
           Find undervalued, high-quality stocks using proven quantitative strategies.
         </p>
@@ -113,7 +113,7 @@ export default function Dashboard() {
       <div className="card bg-gradient-to-br from-accent-blue/10 to-accent-purple/10 border-accent-blue/20">
         <h2 className="text-xl font-semibold mb-2">Getting Started</h2>
         <p className="text-text-secondary mb-4">
-          New to QuantScreen? Here's how to find your next investment:
+          New to FinCentral? Here's how to find your next investment:
         </p>
         <ol className="list-decimal list-inside space-y-2 text-text-secondary">
           <li>Run a preset screen like <strong className="text-text-primary">Magic Formula</strong> to find candidates</li>

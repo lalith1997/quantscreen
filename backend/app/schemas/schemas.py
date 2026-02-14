@@ -247,6 +247,24 @@ class DailyPickResponse(BaseModel):
     screen_name: str
     metrics: dict[str, Any] = Field(default_factory=dict)
     rationale: Optional[str] = None
+    earnings_date: Optional[date] = None
+    earnings_proximity: Optional[str] = None
+    eps_estimated: Optional[float] = None
+
+
+class EarningsEventResponse(BaseModel):
+    """Earnings calendar event."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    ticker: str
+    earnings_date: date
+    eps_estimated: Optional[float] = None
+    eps_actual: Optional[float] = None
+    revenue_estimated: Optional[float] = None
+    revenue_actual: Optional[float] = None
+    fiscal_period: Optional[str] = None
+    is_upcoming: bool = True
 
 
 class DailyBriefResponse(BaseModel):
@@ -309,6 +327,73 @@ class MarketRiskResponse(BaseModel):
     breadth_data: dict[str, Any] = Field(default_factory=dict)
     summary_text: Optional[str] = None
     snapshot_date: date
+
+
+# ============== Portfolio Schemas ==============
+
+class PortfolioHoldingCreate(BaseModel):
+    """Schema for adding a portfolio holding."""
+    ticker: str
+    shares: float
+    avg_cost_basis: float
+    buy_date: Optional[date] = None
+    notes: Optional[str] = None
+
+
+class PortfolioHoldingUpdate(BaseModel):
+    """Schema for updating a portfolio holding."""
+    shares: Optional[float] = None
+    avg_cost_basis: Optional[float] = None
+    buy_date: Optional[date] = None
+    notes: Optional[str] = None
+
+
+class PortfolioHoldingResponse(BaseModel):
+    """Portfolio holding with enriched runtime data."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    ticker: str
+    shares: float
+    avg_cost_basis: float
+    buy_date: Optional[date] = None
+    notes: Optional[str] = None
+    is_active: bool = True
+    created_at: datetime
+
+    # Runtime-enriched fields (not stored in DB)
+    current_price: Optional[float] = None
+    market_value: Optional[float] = None
+    gain_loss: Optional[float] = None
+    gain_loss_pct: Optional[float] = None
+    todays_change_pct: Optional[float] = None
+
+
+class PortfolioAlertResponse(BaseModel):
+    """Portfolio health alert."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    ticker: str
+    alert_type: str
+    severity: str
+    message: str
+    is_read: bool = False
+    created_at: datetime
+
+
+class PortfolioSnapshotResponse(BaseModel):
+    """Portfolio snapshot summary."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    snapshot_date: date
+    total_value: Optional[float] = None
+    total_cost: Optional[float] = None
+    total_gain_loss: Optional[float] = None
+    total_gain_loss_pct: Optional[float] = None
+    holdings_data: Optional[dict[str, Any]] = None
+    created_at: datetime
 
 
 # ============== Health Check ==============

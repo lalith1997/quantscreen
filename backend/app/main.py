@@ -1,5 +1,5 @@
 """
-QuantScreen API - Main Application
+FinCentral API - Main Application
 
 A quantitative stock screening and daily analysis platform for long-term investors.
 """
@@ -18,6 +18,7 @@ from app.api.routes import (
     news_router,
     market_router,
     analysis_router,
+    portfolio_router,
 )
 
 
@@ -25,7 +26,7 @@ from app.api.routes import (
 async def lifespan(app: FastAPI):
     """Application lifespan events."""
     # Startup
-    print("Starting QuantScreen API...")
+    print("Starting FinCentral API...")
     init_db()
     print("Database initialized")
 
@@ -56,14 +57,14 @@ async def lifespan(app: FastAPI):
 
     # Shutdown
     sched.shutdown()
-    print("Shutting down QuantScreen API...")
+    print("Shutting down FinCentral API...")
 
 
 # Create FastAPI application
 app = FastAPI(
     title=settings.app_name,
     description="""
-    ## QuantScreen API
+    ## FinCentral API
 
     A quantitative stock screening and daily analysis platform.
 
@@ -104,6 +105,7 @@ app.include_router(daily_brief_router, prefix="/api")
 app.include_router(news_router, prefix="/api")
 app.include_router(market_router, prefix="/api")
 app.include_router(analysis_router, prefix="/api")
+app.include_router(portfolio_router, prefix="/api")
 
 
 @app.get("/")
@@ -130,7 +132,7 @@ async def health_check():
 async def api_root():
     """API root endpoint."""
     return {
-        "message": "Welcome to QuantScreen API",
+        "message": "Welcome to FinCentral API",
         "version": settings.app_version,
         "endpoints": {
             "daily_brief": "/api/daily-brief",
@@ -139,6 +141,7 @@ async def api_root():
             "news": "/api/news",
             "market": "/api/market",
             "analysis": "/api/analysis",
+            "portfolio": "/api/portfolio",
             "docs": "/docs",
         },
     }

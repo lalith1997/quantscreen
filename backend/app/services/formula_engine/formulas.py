@@ -1,5 +1,5 @@
 """
-Formula Engine - Core financial calculations for QuantScreen.
+Formula Engine - Core financial calculations for FinCentral.
 
 Implements:
 1. Magic Formula (Greenblatt)

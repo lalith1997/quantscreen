@@ -167,6 +167,39 @@ class FMPProvider:
             print(f"Error fetching S&P 500 list: {e}")
             return []
 
+    # ========== Earnings Endpoints ==========
+
+    async def get_earnings_calendar(
+        self, from_date: date, to_date: date
+    ) -> list[dict]:
+        """
+        Get earnings calendar for a date range.
+        Returns list of upcoming and recent earnings events.
+        """
+        try:
+            response = await self.client.get(
+                self._url(
+                    f"earning_calendar?from={from_date.isoformat()}&to={to_date.isoformat()}"
+                )
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            print(f"Error fetching earnings calendar: {e}")
+            return []
+
+    async def get_earnings_surprises(self, ticker: str) -> list[dict]:
+        """Get historical earnings surprises (actual vs estimated) for a stock."""
+        try:
+            response = await self.client.get(
+                self._url(f"earnings-surprises/{ticker}")
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            print(f"Error fetching earnings surprises for {ticker}: {e}")
+            return []
+
     # ========== News Endpoints ==========
 
     async def get_stock_news(self, ticker: str, limit: int = 50) -> list[dict]:

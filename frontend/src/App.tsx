@@ -4,6 +4,7 @@ import DailyBrief from './pages/DailyBrief'
 import Dashboard from './pages/Dashboard'
 import Screener from './pages/Screener'
 import StockDetail from './pages/StockDetail'
+import Portfolio from './pages/Portfolio'
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <Route path="/" element={<Layout />}>
           <Route index element={<DailyBrief />} />
           <Route path="daily" element={<DailyBrief />} />
+          <Route path="portfolio" element={<Portfolio />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="screener" element={<Screener />} />
           <Route path="stock/:ticker" element={<StockDetail />} />

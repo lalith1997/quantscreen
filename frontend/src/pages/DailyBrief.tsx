@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import {
-  Newspaper,
   RefreshCw,
   Shield,
   ChevronDown,
@@ -16,6 +15,90 @@ import {
 } from 'lucide-react'
 import { clsx } from 'clsx'
 import { dailyBriefApi, type DailyPick, type Strategy, type NewsArticle, type MarketRisk } from '../services/api'
+
+// ============== Hero Illustration ==============
+
+function HeroIllustration() {
+  return (
+    <svg viewBox="0 0 320 320" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+      {/* Background circles */}
+      <circle cx="160" cy="160" r="145" fill="#40916C" opacity="0.06" />
+      <circle cx="160" cy="160" r="105" fill="#2D6A4F" opacity="0.05" />
+
+      {/* Phone body */}
+      <rect x="112" y="60" width="96" height="185" rx="14" fill="#1A1A2E" />
+      <rect x="118" y="70" width="84" height="165" rx="8" fill="#FFFFFF" stroke="#E8DFD0" strokeWidth="1" />
+
+      {/* Bar chart on phone screen */}
+      <rect x="130" y="150" width="10" height="30" rx="2" fill="#2D6A4F" opacity="0.3" />
+      <rect x="144" y="140" width="10" height="40" rx="2" fill="#2D6A4F" opacity="0.4" />
+      <rect x="158" y="150" width="10" height="30" rx="2" fill="#2D6A4F" opacity="0.35" />
+      <rect x="172" y="125" width="10" height="55" rx="2" fill="#40916C" opacity="0.5" />
+      <rect x="186" y="110" width="10" height="70" rx="2" fill="#2D6A4F" opacity="0.6" />
+
+      {/* Stock line going up */}
+      <polyline
+        points="130,145 148,135 162,140 176,118 190,100"
+        stroke="#2D6A4F"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+      {/* Glow area under line */}
+      <path
+        d="M130,145 L148,135 L162,140 L176,118 L190,100 L190,180 L130,180 Z"
+        fill="#2D6A4F"
+        opacity="0.08"
+      />
+
+      {/* Arrow up */}
+      <polygon points="190,100 183,112 187,112 187,125 193,125 193,112 197,112" fill="#2D6A4F" />
+
+      {/* Phone notch */}
+      <rect x="145" y="73" width="30" height="4" rx="2" fill="#E8DFD0" />
+
+      {/* Dollar signs flying out */}
+      <text x="218" y="88" fontSize="26" fill="#2D6A4F" opacity="0.7" fontWeight="bold" fontFamily="Inter, system-ui, sans-serif">$</text>
+      <text x="240" y="118" fontSize="20" fill="#40916C" opacity="0.5" fontWeight="bold" fontFamily="Inter, system-ui, sans-serif">$</text>
+      <text x="228" y="60" fontSize="16" fill="#2D6A4F" opacity="0.35" fontWeight="bold" fontFamily="Inter, system-ui, sans-serif">$</text>
+      <text x="80" y="95" fontSize="22" fill="#40916C" opacity="0.5" fontWeight="bold" fontFamily="Inter, system-ui, sans-serif">$</text>
+      <text x="62" y="125" fontSize="14" fill="#2D6A4F" opacity="0.3" fontWeight="bold" fontFamily="Inter, system-ui, sans-serif">$</text>
+
+      {/* Gold coins */}
+      <circle cx="248" cy="140" r="14" fill="#E9A820" opacity="0.5" />
+      <circle cx="248" cy="140" r="9" fill="#E9A820" opacity="0.25" />
+      <circle cx="68" cy="150" r="11" fill="#E9A820" opacity="0.4" />
+      <circle cx="68" cy="150" r="7" fill="#E9A820" opacity="0.2" />
+      <circle cx="235" cy="50" r="8" fill="#E9A820" opacity="0.35" />
+
+      {/* Hand holding phone */}
+      <path
+        d="M98,248 C98,228 108,218 112,213 L112,255 L208,255 L208,213 C212,218 222,228 222,248 L222,272 C222,288 212,298 197,298 L123,298 C108,298 98,288 98,272 Z"
+        fill="#D4A574"
+        opacity="0.85"
+      />
+      {/* Thumb */}
+      <path
+        d="M98,248 C95,240 93,230 96,222 C99,216 104,214 108,216 L112,220"
+        stroke="#C49564"
+        strokeWidth="2"
+        fill="none"
+        opacity="0.6"
+      />
+
+      {/* Sparkle dots */}
+      <circle cx="255" cy="78" r="3" fill="#40916C" opacity="0.5" />
+      <circle cx="265" cy="100" r="2" fill="#2D6A4F" opacity="0.4" />
+      <circle cx="52" cy="108" r="2.5" fill="#40916C" opacity="0.45" />
+      <circle cx="270" cy="60" r="2" fill="#2D6A4F" opacity="0.3" />
+
+      {/* Small green up-arrow particles */}
+      <path d="M240,72 L243,66 L246,72" stroke="#2D6A4F" strokeWidth="2" strokeLinecap="round" opacity="0.4" fill="none" />
+      <path d="M55,80 L58,74 L61,80" stroke="#40916C" strokeWidth="1.5" strokeLinecap="round" opacity="0.35" fill="none" />
+    </svg>
+  )
+}
 
 const SCREEN_LABELS: Record<string, { name: string; description: string }> = {
   magic_formula: { name: 'Magic Formula', description: 'Highest earnings yield + return on capital' },
@@ -310,7 +393,7 @@ function PickCard({ pick }: { pick: DailyPick }) {
             #{pick.rank}
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Link
                 to={`/stock/${pick.ticker}`}
                 className="text-sm font-bold text-accent-blue hover:underline"
@@ -321,6 +404,16 @@ function PickCard({ pick }: { pick: DailyPick }) {
               <span className="text-xs text-text-tertiary">
                 {formatMarketCap(pick.metrics.market_cap as number | null)}
               </span>
+              {pick.earnings_proximity === 'upcoming_7d' && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent-yellow/20 text-accent-yellow font-medium">
+                  Earnings {pick.earnings_date ? new Date(pick.earnings_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'soon'}
+                </span>
+              )}
+              {pick.earnings_proximity === 'just_reported_3d' && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent-blue/20 text-accent-blue font-medium">
+                  Just reported
+                </span>
+              )}
             </div>
             {pick.rationale && (
               <p className="text-xs text-text-secondary line-clamp-1 mt-0.5">{pick.rationale}</p>
@@ -414,26 +507,38 @@ export default function DailyBrief() {
   if (!isLoading && (error || !brief)) {
     return (
       <div className="space-y-6 animate-fade-in">
-        <div className="text-center py-16">
-          <Newspaper className="w-16 h-16 text-text-tertiary mx-auto mb-4" />
-          <h1 className="text-2xl font-bold mb-2">Daily Pre-Market Brief</h1>
-          <p className="text-text-secondary mb-6 max-w-md mx-auto">
-            No analysis has been run yet. Click below to trigger the daily analysis engine.
-            It will scan all S&P 500 stocks + ETFs, apply filters, generate strategies, and fetch news.
-          </p>
-          <button
-            onClick={() => triggerMutation.mutate()}
-            disabled={triggerMutation.isPending}
-            className="btn btn-primary inline-flex items-center gap-2"
-          >
-            <RefreshCw className={clsx('w-4 h-4', triggerMutation.isPending && 'animate-spin')} />
-            {triggerMutation.isPending ? 'Triggering...' : 'Run Daily Analysis'}
-          </button>
-          {triggerMutation.isSuccess && (
-            <p className="text-sm text-accent-green mt-3">
-              Analysis triggered. This may take several minutes. Refresh the page shortly.
-            </p>
-          )}
+        {/* Hero Section */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-accent-blue/10 via-accent-green/5 to-accent-yellow/10 border border-accent-blue/15 p-8 md:p-10">
+          <div className="flex flex-col md:flex-row items-center gap-8">
+            <div className="flex-1 text-center md:text-left">
+              <h1 className="text-3xl md:text-4xl font-bold text-text-primary mb-3">
+                Welcome to <span className="text-accent-blue">FinCentral</span>
+              </h1>
+              <p className="text-text-secondary text-lg mb-2">
+                Your Daily Pre-Market Intelligence
+              </p>
+              <p className="text-text-tertiary text-sm mb-6 max-w-lg">
+                No analysis has been run yet. Trigger the engine to scan all S&P 500 stocks,
+                apply quantitative filters, generate trading strategies, and fetch the latest news.
+              </p>
+              <button
+                onClick={() => triggerMutation.mutate()}
+                disabled={triggerMutation.isPending}
+                className="btn btn-primary inline-flex items-center gap-2 text-base px-6 py-3"
+              >
+                <RefreshCw className={clsx('w-5 h-5', triggerMutation.isPending && 'animate-spin')} />
+                {triggerMutation.isPending ? 'Triggering Analysis...' : 'Run Daily Analysis'}
+              </button>
+              {triggerMutation.isSuccess && (
+                <p className="text-sm text-accent-green mt-3">
+                  Analysis triggered! This may take several minutes. Refresh the page shortly.
+                </p>
+              )}
+            </div>
+            <div className="w-52 h-52 md:w-64 md:h-64 flex-shrink-0">
+              <HeroIllustration />
+            </div>
+          </div>
         </div>
       </div>
     )
@@ -450,35 +555,40 @@ export default function DailyBrief() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-3">
-            <Newspaper className="w-7 h-7 text-accent-blue" />
-            Daily Pre-Market Brief
-          </h1>
-          <div className="flex items-center gap-3 mt-1">
-            <span className="text-sm text-text-secondary">{formatDate(brief!.run_date)}</span>
-            {brief!.completed_at && (
-              <span className="text-xs text-text-tertiary flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                Completed {timeAgo(brief!.completed_at)}
+      {/* Hero Section */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-accent-blue/10 via-accent-green/5 to-accent-yellow/10 border border-accent-blue/15 p-6 md:p-8">
+        <div className="flex flex-col md:flex-row items-center gap-6">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl md:text-3xl font-bold text-text-primary mb-1">
+              <span className="text-accent-blue">FinCentral</span> Daily Brief
+            </h1>
+            <p className="text-text-secondary text-sm mb-2">
+              Your pre-market intelligence for {formatDate(brief!.run_date)}
+            </p>
+            <div className="flex items-center gap-3 flex-wrap">
+              {brief!.completed_at && (
+                <span className="text-xs text-text-tertiary flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  Completed {timeAgo(brief!.completed_at)}
+                </span>
+              )}
+              <span className="text-xs bg-accent-blue/20 text-accent-blue px-2 py-0.5 rounded-full font-medium">
+                {brief!.stocks_analyzed} stocks analyzed
               </span>
-            )}
-            <span className="text-xs bg-accent-blue/20 text-accent-blue px-2 py-0.5 rounded-full">
-              {brief!.stocks_analyzed} stocks analyzed
-            </span>
+              <button
+                onClick={() => triggerMutation.mutate()}
+                disabled={triggerMutation.isPending}
+                className="btn btn-secondary inline-flex items-center gap-2 text-xs px-3 py-1.5"
+              >
+                <RefreshCw className={clsx('w-3.5 h-3.5', triggerMutation.isPending && 'animate-spin')} />
+                Re-run
+              </button>
+            </div>
+          </div>
+          <div className="w-36 h-36 md:w-44 md:h-44 flex-shrink-0 hidden sm:block">
+            <HeroIllustration />
           </div>
         </div>
-
-        <button
-          onClick={() => triggerMutation.mutate()}
-          disabled={triggerMutation.isPending}
-          className="btn btn-secondary inline-flex items-center gap-2 text-sm"
-        >
-          <RefreshCw className={clsx('w-4 h-4', triggerMutation.isPending && 'animate-spin')} />
-          Re-run
-        </button>
       </div>
 
       {/* Market Risk */}

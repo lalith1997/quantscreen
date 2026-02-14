@@ -51,6 +51,9 @@ async def get_latest_daily_brief(db: Session = Depends(get_db)):
             "rank": pick.rank,
             "metrics": pick.metrics,
             "rationale": pick.rationale,
+            "earnings_date": pick.earnings_date.isoformat() if pick.earnings_date else None,
+            "earnings_proximity": pick.earnings_proximity,
+            "eps_estimated": float(pick.eps_estimated) if pick.eps_estimated else None,
         }
         grouped.setdefault(pick.screen_name, []).append(entry)
 
@@ -197,6 +200,9 @@ async def get_todays_picks(
             "screen_name": p.screen_name,
             "metrics": p.metrics,
             "rationale": p.rationale,
+            "earnings_date": p.earnings_date.isoformat() if p.earnings_date else None,
+            "earnings_proximity": p.earnings_proximity,
+            "eps_estimated": float(p.eps_estimated) if p.eps_estimated else None,
         }
         for p in picks
     ]

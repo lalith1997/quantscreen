@@ -11,7 +11,11 @@ from app.models.models import (
     DailyPick,
     StockStrategy,
     NewsArticle,
+    EarningsEvent,
     MarketRiskSnapshot,
+    PortfolioHolding,
+    PortfolioSnapshot,
+    PortfolioAlert,
 )
 
 __all__ = [
@@ -25,5 +29,9 @@ __all__ = [
     "DailyPick",
     "StockStrategy",
     "NewsArticle",
+    "EarningsEvent",
     "MarketRiskSnapshot",
+    "PortfolioHolding",
+    "PortfolioSnapshot",
+    "PortfolioAlert",
 ]

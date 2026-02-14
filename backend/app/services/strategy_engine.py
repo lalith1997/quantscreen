@@ -1,6 +1,7 @@
 """
 Strategy generation engine.
-Produces swing, position, and long-term strategies with plain English rationale.
+Produces swing, position, and long-term strategies with plain English rationale
+written at a college-student reading level.
 """
 
 import asyncio
@@ -16,6 +17,7 @@ from app.services.technical import (
     calculate_atr,
     find_support_resistance,
 )
+from app.services.rationale_helpers import explain_metric, plain_signal
 
 
 async def generate_strategies_for_picks(db: Session, run_id: int):
@@ -141,33 +143,24 @@ def _build_swing_strategy(
     confidence_points = 0
 
     if rsi is not None:
+        signals.append(plain_signal("rsi", rsi))
         if rsi < 30:
-            signals.append(f"RSI oversold at {rsi:.0f} — strong buy signal")
             confidence_points += 2
         elif rsi < 45:
-            signals.append(f"RSI approaching oversold at {rsi:.0f}")
             confidence_points += 1
-        elif rsi > 70:
-            signals.append(f"RSI overbought at {rsi:.0f} — caution advised")
-        else:
-            signals.append(f"RSI neutral at {rsi:.0f}")
 
     if macd:
-        if macd["bullish"]:
-            signals.append("MACD histogram positive — bullish momentum")
+        signals.append(plain_signal("macd", macd))
+        if macd.get("bullish"):
             confidence_points += 1
-        else:
-            signals.append("MACD histogram negative — bearish momentum")
 
     if sma50 is not None:
+        signals.append(plain_signal("sma50", sma50, {"price": price}))
         if price > sma50:
-            signals.append(f"Trading above 50-day SMA (${sma50:.2f}) — uptrend")
             confidence_points += 1
-        else:
-            signals.append(f"Trading below 50-day SMA (${sma50:.2f}) — downtrend")
 
     if atr:
-        signals.append(f"Average True Range: ${atr:.2f} (daily volatility)")
+        signals.append(plain_signal("atr", atr))
 
     confidence = (
         "high" if confidence_points >= 3
@@ -175,13 +168,17 @@ def _build_swing_strategy(
         else "low"
     )
 
-    rationale_parts = [f"Swing trade setup for {ticker} at ${price:.2f}."]
-    rationale_parts.extend(signals)
+    rationale_parts = [
+        f"Short-term trade idea for {ticker} at ${price:.2f} "
+        f"(hold for a few days to a couple weeks)."
+    ]
+    rationale_parts.extend([s for s in signals if s])
     rationale_parts.append(
-        f"Entry at ${price:.2f}, stop-loss at ${stop_loss:.2f} "
-        f"(risking ${risk:.2f}), target ${take_profit:.2f} "
-        f"(reward ${take_profit - price:.2f}). "
-        f"Risk/reward ratio: 1:{rr_ratio:.1f}."
+        f"Plan: Buy at ${price:.2f}. If the price drops to ${stop_loss:.2f}, "
+        f"sell to limit your loss (risking ${risk:.2f} per share). "
+        f"If it goes up to ${take_profit:.2f}, sell for a profit "
+        f"(gaining ${take_profit - price:.2f} per share). "
+        f"That means you could make {rr_ratio:.1f}x what you risk."
     )
 
     return StockStrategy(
@@ -234,44 +231,31 @@ def _build_position_strategy(
     confidence_points = 0
 
     if sma20 and sma50:
+        signals.append(
+            plain_signal("sma_crossover", None, {"sma20": sma20, "sma50": sma50})
+        )
         if sma20 > sma50:
-            signals.append(
-                f"20-day SMA (${sma20:.2f}) above 50-day SMA (${sma50:.2f}) — bullish trend confirmed"
-            )
             confidence_points += 1
-        else:
-            signals.append(
-                f"20-day SMA (${sma20:.2f}) below 50-day SMA (${sma50:.2f}) — trend is bearish, wait for crossover"
-            )
 
     f_score = metrics.get("f_score")
     if f_score is not None:
+        signals.append(explain_metric("f_score", f_score))
         if f_score >= 7:
-            signals.append(f"Strong fundamentals with Piotroski F-Score of {f_score}/9")
             confidence_points += 2
         elif f_score >= 5:
-            signals.append(f"Decent fundamentals with F-Score of {f_score}/9")
             confidence_points += 1
-        else:
-            signals.append(f"Weak fundamentals with F-Score of {f_score}/9 — be cautious")
 
     z_score = metrics.get("z_score")
     if z_score is not None:
+        signals.append(explain_metric("z_score", z_score))
         if z_score > 2.99:
-            signals.append(f"Financially safe (Altman Z-Score: {z_score:.2f})")
             confidence_points += 1
-        elif z_score < 1.81:
-            signals.append(f"Bankruptcy risk detected (Z-Score: {z_score:.2f}) — avoid or size small")
 
     pe = metrics.get("pe_ratio")
     if pe is not None and pe > 0:
+        signals.append(explain_metric("pe_ratio", pe))
         if pe < 15:
-            signals.append(f"Attractively valued at P/E {pe:.1f}")
             confidence_points += 1
-        elif pe < 25:
-            signals.append(f"Fairly valued at P/E {pe:.1f}")
-        else:
-            signals.append(f"Expensive at P/E {pe:.1f} — wait for better entry")
 
     confidence = (
         "high" if confidence_points >= 4
@@ -279,13 +263,17 @@ def _build_position_strategy(
         else "low"
     )
 
-    rationale_parts = [f"Position trade for {ticker}."]
+    rationale_parts = [
+        f"Medium-term trade idea for {ticker} (hold for a few weeks to months)."
+    ]
     rationale_parts.append(
-        f"Accumulate near ${entry:.2f} (3% below current price). "
-        f"Stop-loss at ${stop_loss:.2f} (10% risk), target ${take_profit:.2f} (20% upside). "
-        f"Risk/reward: 1:{rr_ratio:.1f}."
+        f"Don't buy right now — wait for a small dip to around ${entry:.2f} "
+        f"(3% cheaper than today). "
+        f"If it drops 10% to ${stop_loss:.2f}, sell to protect yourself. "
+        f"Target: ${take_profit:.2f} (20% profit). "
+        f"You could make {rr_ratio:.1f}x what you risk."
     )
-    rationale_parts.extend(signals)
+    rationale_parts.extend([s for s in signals if s])
 
     return StockStrategy(
         ticker=ticker,
@@ -342,42 +330,44 @@ def _build_longterm_strategy(
     confidence_points = 0
 
     if z_score is not None:
+        signals.append(explain_metric("z_score", z_score))
         if z_score > 2.99:
-            signals.append(f"Financially safe — Altman Z-Score {z_score:.2f} (well above distress zone)")
             confidence_points += 1
-        elif z_score > 1.81:
-            signals.append(f"Grey zone — Z-Score {z_score:.2f} (monitor closely)")
-        else:
-            signals.append(f"Distress zone — Z-Score {z_score:.2f} (high bankruptcy risk)")
 
     if f_score is not None:
+        signals.append(explain_metric("f_score", f_score))
         if f_score >= 7:
-            signals.append(f"Excellent financial strength — F-Score {f_score}/9")
             confidence_points += 2
         elif f_score >= 5:
-            signals.append(f"Moderate financial strength — F-Score {f_score}/9")
             confidence_points += 1
 
     if roe is not None:
+        signals.append(explain_metric("roe", roe))
         if roe > 20:
-            signals.append(f"High return on equity: {roe:.1f}% — strong competitive advantage")
             confidence_points += 1
-        elif roe > 10:
-            signals.append(f"Solid ROE: {roe:.1f}%")
 
     if margin_of_safety is not None:
         if margin_of_safety > 30:
-            signals.append(f"Large margin of safety: {margin_of_safety:.0f}% below estimated fair value")
+            signals.append(
+                f"Big discount: the stock looks about {margin_of_safety:.0f}% "
+                f"cheaper than what we think it's actually worth."
+            )
             confidence_points += 2
         elif margin_of_safety > 10:
-            signals.append(f"Moderate margin of safety: {margin_of_safety:.0f}%")
+            signals.append(
+                f"Decent discount: about {margin_of_safety:.0f}% cheaper than "
+                f"our fair value estimate."
+            )
             confidence_points += 1
         elif margin_of_safety < 0:
-            signals.append(f"Trading {abs(margin_of_safety):.0f}% above estimated fair value — may be overpriced")
+            signals.append(
+                f"Heads up: the stock is trading about {abs(margin_of_safety):.0f}% "
+                f"above what we think it's worth — it may be overpriced."
+            )
 
     m_score_flag = metrics.get("m_score_flag")
     if m_score_flag:
-        signals.append("Warning: Beneish M-Score flags potential earnings manipulation")
+        signals.append(explain_metric("m_score_flag", m_score_flag))
 
     confidence = (
         "high" if confidence_points >= 4
@@ -385,13 +375,19 @@ def _build_longterm_strategy(
         else "low"
     )
 
-    rationale_parts = [f"Long-term investment case for {ticker} at ${price:.2f}."]
+    rationale_parts = [
+        f"Long-term investment idea for {ticker} at ${price:.2f} "
+        f"(think months to years, not days)."
+    ]
     if fair_value:
-        rationale_parts.append(f"Estimated fair value: ${fair_value:.2f}.")
+        rationale_parts.append(
+            f"We estimate this stock is worth about ${fair_value:.2f}."
+        )
     rationale_parts.append(
-        f"Maximum drawdown tolerance: 25% (stop at ${stop_loss:.2f}). "
+        f"If the price drops 25% to ${stop_loss:.2f}, consider selling "
+        f"to limit the damage — that's the most you should be willing to lose."
     )
-    rationale_parts.extend(signals)
+    rationale_parts.extend([s for s in signals if s])
 
     return StockStrategy(
         ticker=ticker,

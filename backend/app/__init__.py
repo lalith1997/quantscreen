@@ -1,1 +1,1 @@
-"""QuantScreen Backend Application."""
+"""FinCentral Backend Application."""

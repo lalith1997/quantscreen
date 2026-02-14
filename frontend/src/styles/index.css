@@ -35,11 +35,11 @@
   }
   
   .btn-primary {
-    @apply bg-accent-blue text-white hover:bg-accent-blue/90;
+    @apply bg-accent-blue text-white hover:bg-accent-blue/90 shadow-sm;
   }
-  
+
   .btn-secondary {
-    @apply bg-surface text-text-primary hover:bg-surface-hover border border-border;
+    @apply bg-white text-text-primary hover:bg-surface-hover border border-border shadow-sm;
   }
   
   .btn-ghost {
@@ -47,13 +47,13 @@
   }
   
   .card {
-    @apply bg-surface rounded-xl border border-border p-4;
+    @apply bg-surface rounded-xl shadow-card p-4 border border-border/50;
   }
   
   .input {
-    @apply bg-background-secondary border border-border rounded-lg px-3 py-2 
+    @apply bg-white border border-border rounded-lg px-3 py-2
            text-text-primary placeholder:text-text-tertiary
-           focus:outline-none focus:border-accent-blue focus:ring-1 focus:ring-accent-blue;
+           focus:outline-none focus:border-accent-blue focus:ring-1 focus:ring-accent-blue/30;
   }
   
   /* Metric colors */

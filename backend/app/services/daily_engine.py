@@ -103,6 +103,27 @@ async def run_daily_analysis():
         except Exception as e:
             print(f"  Warning: News fetching failed: {e}")
 
+        # Step 7: Tag picks with earnings calendar data
+        try:
+            from app.services.earnings_service import fetch_and_tag_earnings
+            await fetch_and_tag_earnings(db, run.id)
+            print("  Earnings tagged")
+        except Exception as e:
+            print(f"  Warning: Earnings tagging failed: {e}")
+
+        # Step 8: Portfolio health check (only if user has holdings)
+        try:
+            from app.models import PortfolioHolding
+            has_holdings = db.query(PortfolioHolding).filter(
+                PortfolioHolding.is_active == True
+            ).first()
+            if has_holdings:
+                from app.services.portfolio_service import run_portfolio_analysis
+                await run_portfolio_analysis(db)
+                print("  Portfolio analysis completed")
+        except Exception as e:
+            print(f"  Warning: Portfolio analysis failed: {e}")
+
         # Update run metadata
         elapsed = time.time() - start
         run.completed_at = datetime.utcnow()
@@ -320,61 +341,63 @@ def _generate_daily_picks(
 
 
 def _build_rationale(screen_name: str, metrics: dict, company: Company) -> str:
-    """Generate plain English explanation for why a stock was picked."""
+    """Generate a plain English explanation a college student could understand."""
+    from app.services.rationale_helpers import explain_metric
+
     parts = []
 
     if screen_name == "magic_formula":
         ey = metrics.get("earnings_yield")
         roc = metrics.get("return_on_capital")
-        parts.append("Passed Magic Formula screen.")
-        if ey is not None:
-            parts.append(f"Earnings Yield: {ey * 100:.1f}%.")
-        if roc is not None:
-            parts.append(f"Return on Capital: {roc * 100:.1f}%.")
         parts.append(
-            "This stock ranks highly on both profitability and cheapness — "
-            "the core of Greenblatt's strategy."
+            f"{company.name} looks like a great deal — it's both cheap "
+            f"and highly profitable."
         )
+        if ey is not None:
+            parts.append(explain_metric("earnings_yield", ey))
+        if roc is not None:
+            parts.append(explain_metric("return_on_capital", roc))
 
     elif screen_name == "deep_value":
         am = metrics.get("acquirers_multiple")
         fs = metrics.get("f_score")
-        parts.append("Passed Deep Value (Acquirer's Multiple) screen.")
-        if am is not None:
-            parts.append(f"Acquirer's Multiple: {am:.1f}x.")
-        if fs is not None:
-            parts.append(f"F-Score: {fs}/9.")
         parts.append(
-            "Trading at a deep discount to operating earnings with decent financial health."
+            f"{company.name} is trading at a big discount — you're getting "
+            f"a lot of business for your money."
         )
+        if am is not None:
+            parts.append(explain_metric("acquirers_multiple", am))
+        if fs is not None:
+            parts.append(explain_metric("f_score", fs))
 
     elif screen_name == "quality_value":
         fs = metrics.get("f_score")
         pe = metrics.get("pe_ratio")
         roe = metrics.get("roe")
-        parts.append("Passed Quality at Reasonable Price screen.")
+        parts.append(
+            f"{company.name} is a strong company at a fair price — "
+            f"you're not overpaying for quality."
+        )
         if fs is not None:
-            parts.append(f"F-Score: {fs}/9.")
+            parts.append(explain_metric("f_score", fs))
         if pe is not None:
-            parts.append(f"P/E: {pe:.1f}.")
+            parts.append(explain_metric("pe_ratio", pe))
         if roe is not None:
-            parts.append(f"ROE: {roe:.1f}%.")
-        parts.append("Strong fundamentals at a price that doesn't overpay for quality.")
+            parts.append(explain_metric("roe", roe))
 
     elif screen_name == "safe_stocks":
         zs = metrics.get("z_score")
         fs = metrics.get("f_score")
-        parts.append("Passed Financially Safe Stocks screen.")
-        if zs is not None:
-            parts.append(f"Z-Score: {zs:.2f} (safe zone).")
-        if fs is not None:
-            parts.append(f"F-Score: {fs}/9.")
         parts.append(
-            "Low bankruptcy risk with solid financial fundamentals. "
-            "No earnings manipulation flags."
+            f"{company.name} is financially rock-solid — very low risk "
+            f"of going bankrupt, and the books look clean."
         )
+        if zs is not None:
+            parts.append(explain_metric("z_score", zs))
+        if fs is not None:
+            parts.append(explain_metric("f_score", fs))
 
     else:
-        parts.append(f"Passed {screen_name} screen.")
+        parts.append(f"{company.name} passed the {screen_name} screen.")
 
     return " ".join(parts)

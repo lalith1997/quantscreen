@@ -1,5 +1,5 @@
 """
-SQLAlchemy database models for QuantScreen.
+SQLAlchemy database models for FinCentral.
 """
 
 from datetime import datetime, date
@@ -229,6 +229,11 @@ class DailyPick(Base):
     rank = Column(Integer)
     rationale = Column(Text)
 
+    # Earnings proximity
+    earnings_date = Column(Date)
+    earnings_proximity = Column(String(20))  # upcoming_7d, just_reported_3d
+    eps_estimated = Column(Numeric(12, 4))
+
     run = relationship("DailyAnalysisRun", back_populates="picks")
 
     def __repr__(self):
@@ -290,6 +295,29 @@ class NewsArticle(Base):
         return f"<NewsArticle {self.ticker} {self.title[:30]}>"
 
 
+class EarningsEvent(Base):
+    """Earnings calendar events for tracked stocks."""
+
+    __tablename__ = "earnings_events"
+    __table_args__ = (
+        Index("ix_earnings_ticker_date", "ticker", "earnings_date"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    ticker = Column(String(20), nullable=False, index=True)
+    earnings_date = Column(Date, nullable=False)
+    eps_estimated = Column(Numeric(12, 4))
+    eps_actual = Column(Numeric(12, 4))
+    revenue_estimated = Column(Numeric(20, 2))
+    revenue_actual = Column(Numeric(20, 2))
+    fiscal_period = Column(String(20))  # e.g. "Q1 2025"
+    is_upcoming = Column(Boolean, default=True)
+    fetched_at = Column(DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<EarningsEvent {self.ticker} {self.earnings_date}>"
+
+
 class MarketRiskSnapshot(Base):
     """Daily market conditions summary."""
 
@@ -313,3 +341,57 @@ class MarketRiskSnapshot(Base):
 
     def __repr__(self):
         return f"<MarketRiskSnapshot {self.snapshot_date} risk={self.risk_score}>"
+
+
+class PortfolioHolding(Base):
+    """User portfolio holdings."""
+
+    __tablename__ = "portfolio_holdings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ticker = Column(String(20), nullable=False, index=True)
+    shares = Column(Numeric(12, 4), nullable=False)
+    avg_cost_basis = Column(Numeric(12, 4), nullable=False)
+    buy_date = Column(Date)
+    notes = Column(Text)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<PortfolioHolding {self.ticker} {self.shares} shares>"
+
+
+class PortfolioSnapshot(Base):
+    """Daily portfolio health snapshots."""
+
+    __tablename__ = "portfolio_snapshots"
+
+    id = Column(Integer, primary_key=True, index=True)
+    snapshot_date = Column(Date, nullable=False, index=True)
+    total_value = Column(Numeric(14, 2))
+    total_cost = Column(Numeric(14, 2))
+    total_gain_loss = Column(Numeric(14, 2))
+    total_gain_loss_pct = Column(Numeric(8, 2))
+    holdings_data = Column(JSON)  # Per-holding detail with price, P&L, scores
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<PortfolioSnapshot {self.snapshot_date}>"
+
+
+class PortfolioAlert(Base):
+    """Portfolio health alerts and exit signals."""
+
+    __tablename__ = "portfolio_alerts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ticker = Column(String(20), nullable=False, index=True)
+    alert_type = Column(String(20), nullable=False)  # exit_signal, health_warning, earnings_alert
+    severity = Column(String(10), nullable=False)  # high, medium, low
+    message = Column(Text, nullable=False)
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<PortfolioAlert {self.ticker} {self.alert_type} {self.severity}>"

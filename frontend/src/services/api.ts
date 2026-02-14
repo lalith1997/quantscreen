@@ -112,6 +112,9 @@ export interface DailyPick {
   rank: number
   metrics: Record<string, number | boolean | null>
   rationale: string | null
+  earnings_date: string | null
+  earnings_proximity: 'upcoming_7d' | 'just_reported_3d' | null
+  eps_estimated: number | null
   strategies?: Record<string, Strategy>
   news?: NewsArticle[]
 }
@@ -239,6 +242,118 @@ export const analysisApi = {
 export const marketApi = {
   getRiskSummary: async () => {
     const response = await api.get<MarketRisk>('/market/risk-summary')
+    return response.data
+  },
+}
+
+// ============== Portfolio Types ==============
+
+export interface PortfolioHolding {
+  id: number
+  ticker: string
+  shares: number
+  avg_cost_basis: number
+  buy_date: string | null
+  notes: string | null
+  is_active: boolean
+  created_at: string | null
+  current_price: number | null
+  market_value: number | null
+  gain_loss: number | null
+  gain_loss_pct: number | null
+  todays_change_pct: number | null
+}
+
+export interface PortfolioAlert {
+  id: number
+  ticker: string
+  alert_type: 'exit_signal' | 'health_warning' | 'earnings_alert'
+  severity: 'high' | 'medium' | 'low'
+  message: string
+  is_read: boolean
+  created_at: string | null
+}
+
+export interface PortfolioSnapshot {
+  id: number
+  snapshot_date: string
+  total_value: number | null
+  total_cost: number | null
+  total_gain_loss: number | null
+  total_gain_loss_pct: number | null
+  holdings_data: Record<string, unknown>
+  created_at: string | null
+}
+
+export interface PortfolioAnalysis {
+  snapshot_date: string
+  total_value: number | null
+  total_cost: number | null
+  total_gain_loss: number | null
+  total_gain_loss_pct: number | null
+  holdings_data: Record<string, {
+    current_price: number
+    shares: number
+    market_value: number
+    cost_basis: number
+    gain_loss: number
+    gain_loss_pct: number
+    f_score: number | null
+    z_score: number | null
+    m_score_flag: boolean | null
+    rsi: number | null
+    sma50: number | null
+    trend: 'up' | 'down' | null
+  }>
+}
+
+export const portfolioApi = {
+  getHoldings: async () => {
+    const response = await api.get<PortfolioHolding[]>('/portfolio')
+    return response.data
+  },
+
+  addHolding: async (data: { ticker: string; shares: number; avg_cost_basis: number; buy_date?: string; notes?: string }) => {
+    const response = await api.post('/portfolio/add', data)
+    return response.data
+  },
+
+  importCsv: async (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const response = await api.post('/portfolio/import-csv', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return response.data
+  },
+
+  updateHolding: async (id: number, data: { shares?: number; avg_cost_basis?: number; buy_date?: string; notes?: string }) => {
+    const response = await api.put(`/portfolio/${id}`, data)
+    return response.data
+  },
+
+  deleteHolding: async (id: number) => {
+    const response = await api.delete(`/portfolio/${id}`)
+    return response.data
+  },
+
+  runAnalysis: async () => {
+    const response = await api.get<PortfolioAnalysis>('/portfolio/analysis')
+    return response.data
+  },
+
+  getAlerts: async (unreadOnly = true) => {
+    const response = await api.get<PortfolioAlert[]>('/portfolio/alerts', { params: { unread_only: unreadOnly } })
+    return response.data
+  },
+
+  markAlertRead: async (id: number) => {
+    const response = await api.put(`/portfolio/alerts/${id}/read`)
+    return response.data
+  },
+
+  getSnapshots: async (days = 30) => {
+    const response = await api.get<PortfolioSnapshot[]>('/portfolio/snapshots', { params: { days } })
     return response.data
   },
 }

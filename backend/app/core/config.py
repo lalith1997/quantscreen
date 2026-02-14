@@ -17,12 +17,12 @@ class Settings(BaseSettings):
     )
     
     # Application
-    app_name: str = "QuantScreen"
+    app_name: str = "FinCentral"
     app_version: str = "1.0.0"
     debug: bool = False
     
     # Database
-    database_url: str = "postgresql://postgres:postgres@localhost:5432/quantscreen"
+    database_url: str = "postgresql://postgres:postgres@localhost:5432/fincentral"
     
     # Security
     secret_key: str = "your-secret-key-change-in-production-min-32-chars"
@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     cors_origins: list[str] = [
         "http://localhost:5173",
         "http://localhost:3000",
-        "https://quantscreen.vercel.app",
+        "https://fincentral.vercel.app",
     ]
     
     @property

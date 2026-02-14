@@ -38,10 +38,18 @@ from app.schemas.schemas import (
     # Daily Brief
     DailyBriefResponse,
     DailyPickResponse,
+    EarningsEventResponse,
     StrategyResponse,
     StockStrategyResponse,
     NewsArticleResponse,
     MarketRiskResponse,
+
+    # Portfolio
+    PortfolioHoldingCreate,
+    PortfolioHoldingUpdate,
+    PortfolioHoldingResponse,
+    PortfolioAlertResponse,
+    PortfolioSnapshotResponse,
 
     # Health
     HealthCheck,
@@ -70,9 +78,15 @@ __all__ = [
     "CompanyMetrics",
     "DailyBriefResponse",
     "DailyPickResponse",
+    "EarningsEventResponse",
     "StrategyResponse",
     "StockStrategyResponse",
     "NewsArticleResponse",
     "MarketRiskResponse",
+    "PortfolioHoldingCreate",
+    "PortfolioHoldingUpdate",
+    "PortfolioHoldingResponse",
+    "PortfolioAlertResponse",
+    "PortfolioSnapshotResponse",
     "HealthCheck",
 ]

@@ -176,35 +176,49 @@ def _assess_impact(article: dict) -> tuple[str, float]:
 def _build_impact_explanation(
     ticker: str, sentiment: str, impact: float, article: dict
 ) -> str:
-    """Build a plain English explanation of news impact."""
-    title = article.get("title", "News article")
-
+    """Build a plain English explanation of news impact a college student would understand."""
     magnitude = abs(impact)
-    if magnitude > 0.6:
-        strength = "significant"
-    elif magnitude > 0.3:
-        strength = "moderate"
-    elif magnitude > 0:
-        strength = "minor"
-    else:
-        strength = "negligible"
 
     if sentiment == "positive":
-        return (
-            f"This news is likely {strength}ly positive for {ticker}. "
-            f"Historically, similar positive developments tend to support stock prices "
-            f"in the short to medium term."
-        )
+        if magnitude > 0.6:
+            return (
+                f"This is really good news for {ticker}. When companies get "
+                f"news like this, their stock price usually goes up — sometimes "
+                f"a lot. Worth paying attention to."
+            )
+        elif magnitude > 0.3:
+            return (
+                f"This is good news for {ticker}. It's not a game-changer, "
+                f"but positive stories like this tend to help the stock price "
+                f"a bit over the next few days."
+            )
+        else:
+            return (
+                f"Mildly positive news for {ticker}. It probably won't move "
+                f"the stock much on its own, but it's a small good sign."
+            )
     elif sentiment == "negative":
-        return (
-            f"This news could have a {strength} negative impact on {ticker}. "
-            f"Similar negative events have historically pressured stock prices. "
-            f"Monitor closely for follow-up developments."
-        )
+        if magnitude > 0.6:
+            return (
+                f"This is bad news for {ticker}. Stories like this usually "
+                f"drag the stock price down. Keep a close eye on this — "
+                f"there may be more news coming."
+            )
+        elif magnitude > 0.3:
+            return (
+                f"Not great news for {ticker}. This kind of story can put "
+                f"some downward pressure on the stock price, but it's not "
+                f"a disaster."
+            )
+        else:
+            return (
+                f"Slightly negative news for {ticker}. It probably won't "
+                f"hurt the stock much, but it's something to be aware of."
+            )
     else:
         return (
-            f"This news has {strength} expected impact on {ticker}. "
-            f"The content appears neutral — no strong directional signal."
+            f"This news doesn't seem to be clearly good or bad for {ticker}. "
+            f"It's neutral — no reason to worry or get excited."
         )
 
 
