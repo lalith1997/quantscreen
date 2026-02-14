@@ -4,10 +4,7 @@ import { Link } from 'react-router-dom'
 import {
   Newspaper,
   RefreshCw,
-  TrendingUp,
-  TrendingDown,
   Shield,
-  AlertTriangle,
   ChevronDown,
   ChevronRight,
   ExternalLink,
@@ -18,7 +15,7 @@ import {
   Calendar,
 } from 'lucide-react'
 import { clsx } from 'clsx'
-import { dailyBriefApi, type DailyBrief as DailyBriefType, type DailyPick, type Strategy, type NewsArticle, type MarketRisk } from '../services/api'
+import { dailyBriefApi, type DailyPick, type Strategy, type NewsArticle, type MarketRisk } from '../services/api'
 
 const SCREEN_LABELS: Record<string, { name: string; description: string }> = {
   magic_formula: { name: 'Magic Formula', description: 'Highest earnings yield + return on capital' },
