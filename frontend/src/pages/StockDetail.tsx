@@ -46,7 +46,10 @@ export default function StockDetail() {
     )
   }
   
-  const metrics = company.metrics || {}
+  const rawMetrics = company.metrics || {}
+  const metrics: Record<string, number | null> = Object.fromEntries(
+    Object.entries(rawMetrics).map(([k, v]) => [k, typeof v === 'number' ? v : null])
+  )
   const coreScreeners = metricsData?.core_screeners || {}
   
   return (
