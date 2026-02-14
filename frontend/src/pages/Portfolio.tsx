@@ -12,8 +12,6 @@ import {
   Bell,
   Activity,
   Shield,
-  ChevronDown,
-  ChevronRight,
   Check,
 } from 'lucide-react'
 import { clsx } from 'clsx'
@@ -515,7 +513,7 @@ export default function Portfolio() {
 
   const analysisMutation = useMutation({
     mutationFn: () => portfolioApi.runAnalysis(),
-    onSuccess: (data) => {
+    onSuccess: () => {
       setShowHealth(true)
       queryClient.invalidateQueries({ queryKey: ['portfolio-alerts'] })
     },
