@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom base styles */
+@layer base {
+  body {
+    @apply bg-background-primary text-text-primary antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-background-secondary;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-border-hover;
+  }
+}
+
+/* Component styles */
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-colors duration-150;
+  }
+  
+  .btn-primary {
+    @apply bg-accent-blue text-white hover:bg-accent-blue/90;
+  }
+  
+  .btn-secondary {
+    @apply bg-surface text-text-primary hover:bg-surface-hover border border-border;
+  }
+  
+  .btn-ghost {
+    @apply text-text-secondary hover:text-text-primary hover:bg-surface;
+  }
+  
+  .card {
+    @apply bg-surface rounded-xl border border-border p-4;
+  }
+  
+  .input {
+    @apply bg-background-secondary border border-border rounded-lg px-3 py-2 
+           text-text-primary placeholder:text-text-tertiary
+           focus:outline-none focus:border-accent-blue focus:ring-1 focus:ring-accent-blue;
+  }
+  
+  /* Metric colors */
+  .metric-positive {
+    @apply text-accent-green;
+  }
+  
+  .metric-negative {
+    @apply text-accent-red;
+  }
+  
+  .metric-neutral {
+    @apply text-text-secondary;
+  }
+  
+  /* Score badges */
+  .score-high {
+    @apply bg-accent-green/20 text-accent-green;
+  }
+  
+  .score-medium {
+    @apply bg-accent-yellow/20 text-accent-yellow;
+  }
+  
+  .score-low {
+    @apply bg-accent-red/20 text-accent-red;
+  }
+}
+
+/* Utility classes */
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-accent-blue to-accent-purple bg-clip-text text-transparent;
+  }
+  
+  .animate-fade-in {
+    animation: fadeIn 0.2s ease-out;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
