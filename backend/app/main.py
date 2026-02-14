@@ -9,7 +9,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.core.database import init_db
+from app.core.database import init_db, SessionLocal
+from app.core.seed import seed_companies
 from app.api.routes import companies_router, screener_router
 
 
@@ -20,9 +21,20 @@ async def lifespan(app: FastAPI):
     print("🚀 Starting QuantScreen API...")
     init_db()
     print("✅ Database initialized")
-    
+
+    # Seed initial company data
+    db = SessionLocal()
+    try:
+        added = seed_companies(db)
+        if added > 0:
+            print(f"🌱 Seeded {added} companies into database")
+        else:
+            print("📊 Company data already present")
+    finally:
+        db.close()
+
     yield
-    
+
     # Shutdown
     print("👋 Shutting down QuantScreen API...")
 
