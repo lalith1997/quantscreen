@@ -2,7 +2,7 @@
 Database connection and session management.
 """
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text, inspect
 from sqlalchemy.orm import sessionmaker, declarative_base
 from app.core.config import settings
 
@@ -33,6 +33,30 @@ def get_db():
         db.close()
 
 
+def _run_migrations():
+    """Add missing columns to existing tables (lightweight migration)."""
+    migrations = [
+        # (table, column, SQL type, default)
+        ("companies", "is_etf", "BOOLEAN", "FALSE"),
+        ("daily_picks", "earnings_date", "DATE", None),
+        ("daily_picks", "earnings_proximity", "VARCHAR(20)", None),
+        ("daily_picks", "eps_estimated", "NUMERIC(12,4)", None),
+    ]
+    inspector = inspect(engine)
+    with engine.begin() as conn:
+        for table, column, sql_type, default in migrations:
+            if not inspector.has_table(table):
+                continue
+            existing = [c["name"] for c in inspector.get_columns(table)]
+            if column not in existing:
+                default_clause = f" DEFAULT {default}" if default else ""
+                conn.execute(text(
+                    f'ALTER TABLE {table} ADD COLUMN {column} {sql_type}{default_clause}'
+                ))
+                print(f"  Migration: added {table}.{column}")
+
+
 def init_db():
-    """Initialize database tables."""
+    """Initialize database tables and run migrations."""
     Base.metadata.create_all(bind=engine)
+    _run_migrations()
