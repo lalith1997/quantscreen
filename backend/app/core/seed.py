@@ -7,6 +7,57 @@ from sqlalchemy.orm import Session
 from app.models import Company
 from app.core.config import settings
 
+# Top ETFs to track alongside individual stocks
+ETF_TICKERS = [
+    ("SPY", "SPDR S&P 500 ETF Trust", "NYSE", "ETF", "Large Blend", 500000000000),
+    ("QQQ", "Invesco QQQ Trust", "NASDAQ", "ETF", "Large Growth", 250000000000),
+    ("IVV", "iShares Core S&P 500 ETF", "NYSE", "ETF", "Large Blend", 450000000000),
+    ("VOO", "Vanguard S&P 500 ETF", "NYSE", "ETF", "Large Blend", 400000000000),
+    ("VTI", "Vanguard Total Stock Market ETF", "NYSE", "ETF", "Large Blend", 350000000000),
+    ("IWM", "iShares Russell 2000 ETF", "NYSE", "ETF", "Small Blend", 60000000000),
+    ("IWF", "iShares Russell 1000 Growth ETF", "NYSE", "ETF", "Large Growth", 80000000000),
+    ("IWD", "iShares Russell 1000 Value ETF", "NYSE", "ETF", "Large Value", 55000000000),
+    ("EFA", "iShares MSCI EAFE ETF", "NYSE", "ETF", "Foreign Large Blend", 50000000000),
+    ("EEM", "iShares MSCI Emerging Markets ETF", "NYSE", "ETF", "Diversified Emerging Markets", 30000000000),
+    ("AGG", "iShares Core U.S. Aggregate Bond ETF", "NYSE", "ETF", "Intermediate-Term Bond", 90000000000),
+    ("BND", "Vanguard Total Bond Market ETF", "NYSE", "ETF", "Intermediate-Term Bond", 100000000000),
+    ("TLT", "iShares 20+ Year Treasury Bond ETF", "NASDAQ", "ETF", "Long-Term Bond", 40000000000),
+    ("GLD", "SPDR Gold Shares", "NYSE", "ETF", "Commodities Precious Metals", 60000000000),
+    ("SLV", "iShares Silver Trust", "NYSE", "ETF", "Commodities Precious Metals", 12000000000),
+    ("DIA", "SPDR Dow Jones Industrial Average ETF", "NYSE", "ETF", "Large Value", 35000000000),
+    ("MDY", "SPDR S&P MidCap 400 ETF Trust", "NYSE", "ETF", "Mid-Cap Blend", 20000000000),
+    ("SCHD", "Schwab U.S. Dividend Equity ETF", "NYSE", "ETF", "Large Value", 50000000000),
+    ("VIG", "Vanguard Dividend Appreciation ETF", "NYSE", "ETF", "Large Blend", 70000000000),
+    ("VYM", "Vanguard High Dividend Yield ETF", "NYSE", "ETF", "Large Value", 50000000000),
+    ("JEPI", "JPMorgan Equity Premium Income ETF", "NYSE", "ETF", "Large Blend", 30000000000),
+    ("VGT", "Vanguard Information Technology ETF", "NYSE", "ETF", "Technology", 60000000000),
+    ("VHT", "Vanguard Health Care ETF", "NYSE", "ETF", "Health", 15000000000),
+    ("VNQ", "Vanguard Real Estate ETF", "NYSE", "ETF", "Real Estate", 30000000000),
+    ("XLF", "Financial Select Sector SPDR Fund", "NYSE", "ETF", "Financial", 40000000000),
+    ("XLE", "Energy Select Sector SPDR Fund", "NYSE", "ETF", "Energy", 35000000000),
+    ("XLK", "Technology Select Sector SPDR Fund", "NYSE", "ETF", "Technology", 55000000000),
+    ("XLV", "Health Care Select Sector SPDR Fund", "NYSE", "ETF", "Health", 35000000000),
+    ("XLI", "Industrial Select Sector SPDR Fund", "NYSE", "ETF", "Industrials", 18000000000),
+    ("XLY", "Consumer Discretionary Select Sector SPDR Fund", "NYSE", "ETF", "Consumer Cyclical", 20000000000),
+    ("XLP", "Consumer Staples Select Sector SPDR Fund", "NYSE", "ETF", "Consumer Defensive", 16000000000),
+    ("XLU", "Utilities Select Sector SPDR Fund", "NYSE", "ETF", "Utilities", 14000000000),
+    ("XLB", "Materials Select Sector SPDR Fund", "NYSE", "ETF", "Basic Materials", 6000000000),
+    ("XLRE", "Real Estate Select Sector SPDR Fund", "NYSE", "ETF", "Real Estate", 5000000000),
+    ("XLC", "Communication Services Select Sector SPDR Fund", "NYSE", "ETF", "Communication Services", 15000000000),
+    ("SMH", "VanEck Semiconductor ETF", "NASDAQ", "ETF", "Semiconductors", 20000000000),
+    ("SOXX", "iShares Semiconductor ETF", "NASDAQ", "ETF", "Semiconductors", 12000000000),
+    ("XBI", "SPDR S&P Biotech ETF", "NYSE", "ETF", "Biotechnology", 7000000000),
+    ("KRE", "SPDR S&P Regional Banking ETF", "NYSE", "ETF", "Financial", 3000000000),
+    ("XOP", "SPDR S&P Oil & Gas Exploration & Production ETF", "NYSE", "ETF", "Energy", 4000000000),
+    ("ITB", "iShares U.S. Home Construction ETF", "NYSE", "ETF", "Industrials", 3000000000),
+    ("ARKK", "ARK Innovation ETF", "NYSE", "ETF", "Large Growth", 8000000000),
+    ("IBIT", "iShares Bitcoin Trust ETF", "NASDAQ", "ETF", "Digital Assets", 40000000000),
+    ("KWEB", "KraneShares CSI China Internet ETF", "NYSE", "ETF", "China Region", 6000000000),
+    ("FXI", "iShares China Large-Cap ETF", "NYSE", "ETF", "China Region", 5000000000),
+    ("USO", "United States Oil Fund", "NYSE", "ETF", "Commodities Energy", 3000000000),
+    ("HACK", "ETFMG Prime Cyber Security ETF", "NYSE", "ETF", "Technology", 2000000000),
+]
+
 # Hardcoded list of well-known US stocks with sectors and market caps
 # This ensures the screener works even without FMP API access
 SEED_COMPANIES = [
@@ -130,6 +181,7 @@ def seed_companies(db: Session) -> int:
     existing_tickers = {c.ticker for c in db.query(Company.ticker).all()}
     added = 0
 
+    # Seed individual stocks
     for ticker, name, exchange, sector, industry, market_cap in SEED_COMPANIES:
         if ticker not in existing_tickers:
             company = Company(
@@ -142,11 +194,80 @@ def seed_companies(db: Session) -> int:
                 country="US",
                 currency="USD",
                 is_active=True,
+                is_etf=False,
             )
             db.add(company)
+            existing_tickers.add(ticker)
+            added += 1
+
+    # Seed ETFs
+    for ticker, name, exchange, sector, industry, market_cap in ETF_TICKERS:
+        if ticker not in existing_tickers:
+            company = Company(
+                ticker=ticker,
+                name=name,
+                exchange=exchange,
+                sector=sector,
+                industry=industry,
+                market_cap=market_cap,
+                country="US",
+                currency="USD",
+                is_active=True,
+                is_etf=True,
+            )
+            db.add(company)
+            existing_tickers.add(ticker)
             added += 1
 
     if added > 0:
         db.commit()
 
     return added
+
+
+async def sync_sp500_universe(db: Session) -> dict:
+    """
+    Fetch S&P 500 constituents from FMP and sync with database.
+    Returns stats about the sync operation.
+    """
+    from app.services.data_providers import fmp_provider
+
+    stats = {"added": 0, "existing": 0, "errors": 0}
+
+    try:
+        constituents = await fmp_provider.get_sp500_constituents()
+        if not constituents:
+            return stats
+
+        existing_tickers = {c.ticker for c in db.query(Company.ticker).all()}
+
+        for item in constituents:
+            ticker = item.get("symbol", "")
+            if not ticker or ticker in existing_tickers:
+                stats["existing"] += 1
+                continue
+
+            company = Company(
+                ticker=ticker,
+                name=item.get("name", ticker),
+                exchange=item.get("exchange", ""),
+                sector=item.get("sector", ""),
+                industry=item.get("subSector", ""),
+                market_cap=None,
+                country="US",
+                currency="USD",
+                is_active=True,
+                is_etf=False,
+            )
+            db.add(company)
+            existing_tickers.add(ticker)
+            stats["added"] += 1
+
+        if stats["added"] > 0:
+            db.commit()
+
+    except Exception as e:
+        stats["errors"] += 1
+        print(f"Error syncing S&P 500 universe: {e}")
+
+    return stats

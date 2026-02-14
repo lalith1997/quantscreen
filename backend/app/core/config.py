@@ -35,6 +35,12 @@ class Settings(BaseSettings):
     
     # Redis (optional, for caching)
     redis_url: str = "redis://localhost:6379/0"
+
+    # Daily Analysis Scheduler
+    daily_analysis_hour: int = 6  # 6 AM ET
+    daily_analysis_minute: int = 0
+    daily_analysis_enabled: bool = True
+    fmp_rate_limit_concurrency: int = 5
     
     # CORS
     cors_origins: list[str] = [

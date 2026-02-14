@@ -166,7 +166,92 @@ class FMPProvider:
         except Exception as e:
             print(f"Error fetching S&P 500 list: {e}")
             return []
-    
+
+    # ========== News Endpoints ==========
+
+    async def get_stock_news(self, ticker: str, limit: int = 50) -> list[dict]:
+        """Get news articles for a specific stock."""
+        try:
+            response = await self.client.get(
+                self._url(f"stock_news?tickers={ticker}&limit={limit}")
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            print(f"Error fetching news for {ticker}: {e}")
+            return []
+
+    async def get_general_news(self, page: int = 0, size: int = 20) -> list[dict]:
+        """Get general financial news/articles."""
+        try:
+            response = await self.client.get(
+                self._url(f"fmp/articles?page={page}&size={size}")
+            )
+            response.raise_for_status()
+            data = response.json()
+            return data.get("content", data) if isinstance(data, dict) else data
+        except Exception as e:
+            print(f"Error fetching general news: {e}")
+            return []
+
+    async def get_press_releases(self, ticker: str, limit: int = 10) -> list[dict]:
+        """Get press releases for a stock."""
+        try:
+            response = await self.client.get(
+                self._url(f"press-releases/{ticker}?limit={limit}")
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            print(f"Error fetching press releases for {ticker}: {e}")
+            return []
+
+    # ========== Market Data Endpoints ==========
+
+    async def get_market_indexes(self) -> list[dict]:
+        """Get major market index quotes (S&P 500, VIX, etc.)."""
+        results = []
+        try:
+            sp500 = await self.client.get(self._url("quote/%5EGSPC"))
+            if sp500.status_code == 200:
+                results.extend(sp500.json())
+        except Exception as e:
+            print(f"Error fetching S&P 500 index: {e}")
+        try:
+            vix = await self.client.get(self._url("quote/%5EVIX"))
+            if vix.status_code == 200:
+                results.extend(vix.json())
+        except Exception as e:
+            print(f"Error fetching VIX: {e}")
+        return results
+
+    async def get_sector_performance(self) -> list[dict]:
+        """Get sector performance data."""
+        try:
+            response = await self.client.get(self._url("sector-performance"))
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            print(f"Error fetching sector performance: {e}")
+            return []
+
+    async def get_gainers_losers(self) -> dict:
+        """Get market gainers and losers for breadth calculation."""
+        result = {"gainers": [], "losers": []}
+        try:
+            gainers = await self.client.get(self._url("stock_market/gainers"))
+            if gainers.status_code == 200:
+                result["gainers"] = gainers.json()
+        except Exception as e:
+            print(f"Error fetching gainers: {e}")
+        try:
+            losers = await self.client.get(self._url("stock_market/losers"))
+            if losers.status_code == 200:
+                result["losers"] = losers.json()
+        except Exception as e:
+            print(f"Error fetching losers: {e}")
+        return result
+
     async def build_fundamental_data(self, ticker: str) -> Optional[FundamentalData]:
         """
         Fetch all data and build FundamentalData object for formula calculations.

@@ -236,6 +236,81 @@ class CompanyMetrics(BaseModel):
     all_metrics: dict[str, Any] = Field(default_factory=dict)
 
 
+# ============== Daily Brief Schemas ==============
+
+class DailyPickResponse(BaseModel):
+    """Single stock pick from daily analysis."""
+    model_config = ConfigDict(from_attributes=True)
+
+    ticker: str
+    rank: int
+    screen_name: str
+    metrics: dict[str, Any] = Field(default_factory=dict)
+    rationale: Optional[str] = None
+
+
+class DailyBriefResponse(BaseModel):
+    """Full daily brief with all picks grouped by screen."""
+    run_date: date
+    completed_at: Optional[datetime] = None
+    stocks_analyzed: int
+    stocks_passed: int
+    execution_time_seconds: Optional[float] = None
+    picks_by_screen: dict[str, list[DailyPickResponse]] = Field(default_factory=dict)
+    market_risk: Optional["MarketRiskResponse"] = None
+
+
+class StrategyResponse(BaseModel):
+    """Strategy recommendation for a single timeframe."""
+    model_config = ConfigDict(from_attributes=True)
+
+    timeframe: str
+    entry_price: Optional[float] = None
+    stop_loss: Optional[float] = None
+    take_profit: Optional[float] = None
+    risk_reward_ratio: Optional[float] = None
+    confidence: Optional[str] = None
+    rationale: Optional[str] = None
+    signals: dict[str, Any] = Field(default_factory=dict)
+    analysis_date: date
+
+
+class StockStrategyResponse(BaseModel):
+    """All strategies for a single stock."""
+    ticker: str
+    strategies: dict[str, StrategyResponse] = Field(default_factory=dict)
+
+
+class NewsArticleResponse(BaseModel):
+    """News article with impact assessment."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    ticker: Optional[str] = None
+    title: str
+    url: str
+    source: Optional[str] = None
+    published_at: datetime
+    sentiment: Optional[str] = None
+    impact_score: Optional[float] = None
+    impact_explanation: Optional[str] = None
+
+
+class MarketRiskResponse(BaseModel):
+    """Market risk assessment snapshot."""
+    model_config = ConfigDict(from_attributes=True)
+
+    risk_score: Optional[int] = None
+    risk_label: Optional[str] = None
+    vix_level: Optional[float] = None
+    sp500_price: Optional[float] = None
+    sp500_change_pct: Optional[float] = None
+    sector_data: dict[str, Any] = Field(default_factory=dict)
+    breadth_data: dict[str, Any] = Field(default_factory=dict)
+    summary_text: Optional[str] = None
+    snapshot_date: date
+
+
 # ============== Health Check ==============
 
 class HealthCheck(BaseModel):

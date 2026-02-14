@@ -73,13 +73,54 @@
   .score-high {
     @apply bg-accent-green/20 text-accent-green;
   }
-  
+
   .score-medium {
     @apply bg-accent-yellow/20 text-accent-yellow;
   }
-  
+
   .score-low {
     @apply bg-accent-red/20 text-accent-red;
+  }
+
+  /* Sentiment badges */
+  .sentiment-positive {
+    @apply bg-accent-green/20 text-accent-green text-xs px-2 py-0.5 rounded-full;
+  }
+
+  .sentiment-negative {
+    @apply bg-accent-red/20 text-accent-red text-xs px-2 py-0.5 rounded-full;
+  }
+
+  .sentiment-neutral {
+    @apply bg-border text-text-secondary text-xs px-2 py-0.5 rounded-full;
+  }
+
+  /* Confidence badges */
+  .confidence-high {
+    @apply bg-accent-green/20 text-accent-green text-xs px-2 py-0.5 rounded-full;
+  }
+
+  .confidence-medium {
+    @apply bg-accent-yellow/20 text-accent-yellow text-xs px-2 py-0.5 rounded-full;
+  }
+
+  .confidence-low {
+    @apply bg-border text-text-secondary text-xs px-2 py-0.5 rounded-full;
+  }
+
+  /* Line clamp utility */
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 }
 

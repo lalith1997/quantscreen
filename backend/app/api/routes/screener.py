@@ -1,17 +1,20 @@
 """
 Screener API routes.
+
+Uses cached daily analysis data when available, falls back to live FMP fetch.
 """
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional
+from datetime import date
 import time
 
 from app.core.database import get_db
-from app.models import Company, Screen
+from app.models import Company, Screen, DailyAnalysisRun, DailyPick
 from app.schemas import (
-    ScreenerRequest, 
-    ScreenerResponse, 
+    ScreenerRequest,
+    ScreenerResponse,
     ScreenerResult,
     ScreenCreate,
     ScreenResponse,
@@ -140,6 +143,115 @@ async def run_preset_screen(
     return await run_screen(request, db)
 
 
+def _get_cached_run(db: Session) -> Optional[DailyAnalysisRun]:
+    """Return today's completed DailyAnalysisRun if it exists."""
+    return (
+        db.query(DailyAnalysisRun)
+        .filter(
+            DailyAnalysisRun.run_date == date.today(),
+            DailyAnalysisRun.status == "completed",
+        )
+        .first()
+    )
+
+
+def _apply_filters(metrics: dict, filters) -> bool:
+    """Apply metric-level filters to a metrics dict. Returns True if it passes."""
+    for f in filters:
+        value = metrics.get(f.metric)
+        if value is None:
+            return False
+        if f.operator == ">" and not (value > f.value):
+            return False
+        elif f.operator == "<" and not (value < f.value):
+            return False
+        elif f.operator == ">=" and not (value >= f.value):
+            return False
+        elif f.operator == "<=" and not (value <= f.value):
+            return False
+        elif f.operator == "==" and not (value == f.value):
+            return False
+    return True
+
+
+def _run_screen_from_cache(
+    db: Session, run: DailyAnalysisRun, request: ScreenerRequest
+) -> Optional[ScreenerResponse]:
+    """Build screener results from cached DailyPick data. Returns None if cache miss."""
+    start_time = time.time()
+
+    # Pull all picks from today's run (across all screens)
+    picks = db.query(DailyPick).filter(DailyPick.run_id == run.id).all()
+    if not picks:
+        return None
+
+    # Build a company lookup for sector / market_cap filtering
+    tickers = list({p.ticker for p in picks})
+    companies_map = {
+        c.ticker: c
+        for c in db.query(Company).filter(Company.ticker.in_(tickers)).all()
+    }
+
+    results = []
+    seen_tickers: set[str] = set()  # dedupe across screens
+
+    for pick in picks:
+        if pick.ticker in seen_tickers:
+            continue
+        company = companies_map.get(pick.ticker)
+        if not company:
+            continue
+
+        # Apply database-level filters
+        if request.exclude_sectors and company.sector in request.exclude_sectors:
+            continue
+        if request.min_market_cap and (company.market_cap or 0) < request.min_market_cap:
+            continue
+        if request.max_market_cap and (company.market_cap or 0) > request.max_market_cap:
+            continue
+
+        metrics = pick.metrics or {}
+
+        # Apply metric-level filters
+        if not _apply_filters(metrics, request.filters):
+            continue
+
+        seen_tickers.add(pick.ticker)
+        results.append(
+            ScreenerResult(
+                ticker=company.ticker,
+                name=company.name,
+                sector=company.sector,
+                market_cap=company.market_cap,
+                metrics=metrics,
+                rank=0,
+            )
+        )
+
+    # Sort
+    sort_key = request.sort_by
+    reverse = request.sort_order == "desc"
+
+    def get_sort_value(r):
+        val = r.metrics.get(sort_key) or r.market_cap
+        return val if val is not None else 0
+
+    results.sort(key=get_sort_value, reverse=reverse)
+
+    for i, result in enumerate(results):
+        result.rank = i + 1
+
+    results = results[: request.limit]
+    execution_time = (time.time() - start_time) * 1000
+
+    return ScreenerResponse(
+        results=results,
+        total_count=len(results),
+        filters_applied=request.filters,
+        execution_time_ms=round(execution_time, 2),
+    )
+
+
 @router.post("/run", response_model=ScreenerResponse)
 async def run_screen(
     request: ScreenerRequest,
@@ -147,20 +259,23 @@ async def run_screen(
 ):
     """
     Run a custom screen with the given filters.
-    
-    This is a basic implementation that:
-    1. Gets companies from database
-    2. Fetches live metrics from FMP
-    3. Applies filters
-    4. Returns sorted results
-    
-    Note: For production, metrics should be cached in database.
+
+    Uses cached daily analysis data when today's analysis has completed.
+    Falls back to live FMP API fetch otherwise.
     """
+    # Try cached data first
+    cached_run = _get_cached_run(db)
+    if cached_run:
+        cached_result = _run_screen_from_cache(db, cached_run, request)
+        if cached_result:
+            return cached_result
+
+    # Fallback: live FMP fetch
     start_time = time.time()
-    
+
     # Start with base query
     query = db.query(Company).filter(Company.is_active == True)
-    
+
     # Apply database-level filters
     if request.exclude_sectors:
         query = query.filter(~Company.sector.in_(request.exclude_sectors))
@@ -168,27 +283,25 @@ async def run_screen(
         query = query.filter(Company.market_cap >= request.min_market_cap)
     if request.max_market_cap:
         query = query.filter(Company.market_cap <= request.max_market_cap)
-    
-    # Get candidate companies (limit for API rate limits during development)
+
+    # Get candidate companies
     companies = query.order_by(Company.market_cap.desc()).limit(200).all()
-    
+
     results = []
-    
-    # Calculate metrics for each company
-    # NOTE: In production, this would use cached metrics from database
-    for company in companies[:50]:  # Limit to 50 for API calls during development
+
+    for company in companies[:50]:  # Limit to 50 for live API calls
         try:
             fundamental_data = await fmp_provider.build_fundamental_data(company.ticker)
-            
+
             if not fundamental_data:
                 continue
-            
+
             all_formulas = FormulaEngine.calculate_all(fundamental_data)
             valuation = FormulaEngine.calculate_valuation_ratios(fundamental_data)
-            
+
             # Build metrics dict
             metrics = {}
-            
+
             # Core screeners
             if all_formulas.get("piotroski"):
                 metrics["f_score"] = all_formulas["piotroski"]["f_score"]
@@ -205,65 +318,45 @@ async def run_screen(
                 mf = all_formulas["magic_formula"]
                 metrics["earnings_yield"] = mf.get("earnings_yield")
                 metrics["return_on_capital"] = mf.get("return_on_capital")
-            
+
             # Valuation ratios
             metrics.update(valuation)
-            
-            # Apply metric-level filters
-            passes_filters = True
-            for f in request.filters:
-                value = metrics.get(f.metric)
-                if value is None:
-                    passes_filters = False
-                    break
-                
-                if f.operator == ">" and not (value > f.value):
-                    passes_filters = False
-                elif f.operator == "<" and not (value < f.value):
-                    passes_filters = False
-                elif f.operator == ">=" and not (value >= f.value):
-                    passes_filters = False
-                elif f.operator == "<=" and not (value <= f.value):
-                    passes_filters = False
-                elif f.operator == "==" and not (value == f.value):
-                    passes_filters = False
-                
-                if not passes_filters:
-                    break
-            
-            if passes_filters:
-                results.append(ScreenerResult(
-                    ticker=company.ticker,
-                    name=company.name,
-                    sector=company.sector,
-                    market_cap=company.market_cap,
-                    metrics=metrics,
-                    rank=0,  # Will be assigned after sorting
-                ))
-        
+
+            if not _apply_filters(metrics, request.filters):
+                continue
+
+            results.append(ScreenerResult(
+                ticker=company.ticker,
+                name=company.name,
+                sector=company.sector,
+                market_cap=company.market_cap,
+                metrics=metrics,
+                rank=0,
+            ))
+
         except Exception as e:
             print(f"Error processing {company.ticker}: {e}")
             continue
-    
+
     # Sort results
     sort_key = request.sort_by
     reverse = request.sort_order == "desc"
-    
+
     def get_sort_value(r):
         val = r.metrics.get(sort_key) or r.market_cap
         return val if val is not None else 0
-    
+
     results.sort(key=get_sort_value, reverse=reverse)
-    
+
     # Assign ranks
     for i, result in enumerate(results):
         result.rank = i + 1
-    
+
     # Apply limit
     results = results[:request.limit]
-    
+
     execution_time = (time.time() - start_time) * 1000
-    
+
     return ScreenerResponse(
         results=results,
         total_count=len(results),

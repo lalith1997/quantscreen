@@ -27,7 +27,8 @@ class Company(Base):
     country = Column(String(50), default="US")
     currency = Column(String(10), default="USD")
     is_active = Column(Boolean, default=True)
-    
+    is_etf = Column(Boolean, default=False)
+
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -189,3 +190,126 @@ class Watchlist(Base):
     
     def __repr__(self):
         return f"<Watchlist {self.name}>"
+
+
+class DailyAnalysisRun(Base):
+    """Metadata for each daily analysis execution."""
+
+    __tablename__ = "daily_analysis_runs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    run_date = Column(Date, nullable=False, unique=True, index=True)
+    started_at = Column(DateTime, nullable=False)
+    completed_at = Column(DateTime)
+    stocks_analyzed = Column(Integer, default=0)
+    stocks_passed = Column(Integer, default=0)
+    status = Column(String(20), default="running")  # running, completed, failed
+    error_message = Column(Text)
+    execution_time_seconds = Column(Numeric(10, 2))
+
+    picks = relationship("DailyPick", back_populates="run", lazy="dynamic")
+
+    def __repr__(self):
+        return f"<DailyAnalysisRun {self.run_date} {self.status}>"
+
+
+class DailyPick(Base):
+    """Stocks that passed filter presets for a given analysis run."""
+
+    __tablename__ = "daily_picks"
+    __table_args__ = (
+        Index("ix_daily_picks_run_ticker", "run_id", "ticker"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    run_id = Column(Integer, ForeignKey("daily_analysis_runs.id"), nullable=False)
+    ticker = Column(String(20), nullable=False, index=True)
+    screen_name = Column(String(100), nullable=False)
+    metrics = Column(JSON)
+    rank = Column(Integer)
+    rationale = Column(Text)
+
+    run = relationship("DailyAnalysisRun", back_populates="picks")
+
+    def __repr__(self):
+        return f"<DailyPick {self.ticker} #{self.rank} ({self.screen_name})>"
+
+
+class StockStrategy(Base):
+    """Strategy recommendation per stock per timeframe."""
+
+    __tablename__ = "stock_strategies"
+    __table_args__ = (
+        Index("ix_strategies_ticker_date", "ticker", "analysis_date"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    ticker = Column(String(20), nullable=False, index=True)
+    analysis_date = Column(Date, nullable=False)
+    timeframe = Column(String(20), nullable=False)  # swing, position, longterm
+
+    entry_price = Column(Numeric(12, 4))
+    stop_loss = Column(Numeric(12, 4))
+    take_profit = Column(Numeric(12, 4))
+    risk_reward_ratio = Column(Numeric(6, 2))
+    confidence = Column(String(10))  # high, medium, low
+
+    rationale = Column(Text)
+    signals = Column(JSON)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<StockStrategy {self.ticker} {self.timeframe} {self.analysis_date}>"
+
+
+class NewsArticle(Base):
+    """Fetched news articles with impact assessment."""
+
+    __tablename__ = "news_articles"
+    __table_args__ = (
+        Index("ix_news_ticker_date", "ticker", "published_at"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    ticker = Column(String(20), index=True)
+    title = Column(String(500), nullable=False)
+    url = Column(String(1000), nullable=False, unique=True)
+    source = Column(String(200))
+    published_at = Column(DateTime, nullable=False, index=True)
+    image_url = Column(String(1000))
+    snippet = Column(Text)
+
+    sentiment = Column(String(10))  # positive, negative, neutral
+    impact_score = Column(Numeric(4, 2))  # -1.0 to 1.0
+    impact_explanation = Column(Text)
+
+    fetched_at = Column(DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<NewsArticle {self.ticker} {self.title[:30]}>"
+
+
+class MarketRiskSnapshot(Base):
+    """Daily market conditions summary."""
+
+    __tablename__ = "market_risk_snapshots"
+
+    id = Column(Integer, primary_key=True, index=True)
+    snapshot_date = Column(Date, nullable=False, unique=True, index=True)
+
+    risk_score = Column(Integer)  # 1-10
+    risk_label = Column(String(20))  # Low, Moderate, Elevated, High, Extreme
+
+    vix_level = Column(Numeric(8, 2))
+    sp500_price = Column(Numeric(12, 4))
+    sp500_change_pct = Column(Numeric(6, 2))
+
+    sector_data = Column(JSON)
+    breadth_data = Column(JSON)
+
+    summary_text = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<MarketRiskSnapshot {self.snapshot_date} risk={self.risk_score}>"

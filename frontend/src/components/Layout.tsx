@@ -1,15 +1,16 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Filter, TrendingUp, Settings } from 'lucide-react'
+import { Newspaper, LayoutDashboard, Filter, TrendingUp, Settings } from 'lucide-react'
 import { clsx } from 'clsx'
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'Daily Brief', href: '/', icon: Newspaper },
   { name: 'Screener', href: '/screener', icon: Filter },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
 ]
 
 export default function Layout() {
   const location = useLocation()
-  
+
   return (
     <div className="min-h-screen bg-background-primary">
       {/* Header */}
@@ -21,11 +22,14 @@ export default function Layout() {
               <TrendingUp className="w-8 h-8 text-accent-blue" />
               <span className="text-xl font-bold">QuantScreen</span>
             </Link>
-            
+
             {/* Navigation */}
             <nav className="flex items-center gap-1">
               {navigation.map((item) => {
-                const isActive = location.pathname === item.href
+                const isActive =
+                  item.href === '/'
+                    ? location.pathname === '/' || location.pathname === '/daily'
+                    : location.pathname === item.href
                 return (
                   <Link
                     key={item.name}
@@ -43,7 +47,7 @@ export default function Layout() {
                 )
               })}
             </nav>
-            
+
             {/* Settings */}
             <button className="p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface transition-colors">
               <Settings className="w-5 h-5" />
@@ -51,7 +55,7 @@ export default function Layout() {
           </div>
         </div>
       </header>
-      
+
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Outlet />

@@ -7,13 +7,23 @@ from app.models.models import (
     MetricCache,
     Screen,
     Watchlist,
+    DailyAnalysisRun,
+    DailyPick,
+    StockStrategy,
+    NewsArticle,
+    MarketRiskSnapshot,
 )
 
 __all__ = [
     "Company",
-    "Fundamental", 
+    "Fundamental",
     "Price",
     "MetricCache",
     "Screen",
     "Watchlist",
+    "DailyAnalysisRun",
+    "DailyPick",
+    "StockStrategy",
+    "NewsArticle",
+    "MarketRiskSnapshot",
 ]

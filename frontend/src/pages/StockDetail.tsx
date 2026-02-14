@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -5,9 +6,13 @@ import {
   AlertTriangle,
   CheckCircle,
   Loader2,
+  ExternalLink,
+  Zap,
+  BarChart3,
+  Calendar,
 } from 'lucide-react'
 import { clsx } from 'clsx'
-import { companyApi } from '../services/api'
+import { companyApi, newsApi, analysisApi, type Strategy, type NewsArticle } from '../services/api'
 
 export default function StockDetail() {
   const { ticker } = useParams<{ ticker: string }>()
@@ -21,6 +26,18 @@ export default function StockDetail() {
   const { data: metricsData } = useQuery({
     queryKey: ['metrics', ticker],
     queryFn: () => companyApi.getMetrics(ticker!),
+    enabled: !!ticker,
+  })
+
+  const { data: newsData } = useQuery({
+    queryKey: ['news', ticker],
+    queryFn: () => newsApi.getStockNews(ticker!, 10),
+    enabled: !!ticker,
+  })
+
+  const { data: strategyData } = useQuery({
+    queryKey: ['strategy', ticker],
+    queryFn: () => analysisApi.getStrategy(ticker!),
     enabled: !!ticker,
   })
   
@@ -169,6 +186,16 @@ export default function StockDetail() {
           <MetricItem label="Debt/Equity" value={metrics.debt_to_equity} format={(v) => v.toFixed(2)} />
         </div>
       </div>
+
+      {/* Strategy Recommendations */}
+      {strategyData?.strategies && Object.keys(strategyData.strategies).length > 0 && (
+        <StockStrategySection strategies={strategyData.strategies} />
+      )}
+
+      {/* News */}
+      {newsData && newsData.length > 0 && (
+        <StockNewsSection news={newsData} />
+      )}
     </div>
   )
 }
@@ -276,6 +303,142 @@ function MetricItem({
       )}>
         {value !== null && value !== undefined ? format(value) : '-'}
       </p>
+    </div>
+  )
+}
+
+function StockStrategySection({ strategies }: { strategies: Record<string, Strategy> }) {
+  const [activeTab, setActiveTab] = useState<string>('swing')
+  const tabs = [
+    { key: 'swing', label: 'Swing Trade', icon: Zap, desc: 'Days to weeks' },
+    { key: 'position', label: 'Position Trade', icon: BarChart3, desc: 'Weeks to months' },
+    { key: 'longterm', label: 'Long-term', icon: Calendar, desc: 'Months+' },
+  ]
+
+  const strategy = strategies[activeTab]
+
+  const confidenceClass = (c: string | null) => {
+    if (c === 'high') return 'bg-accent-green/20 text-accent-green'
+    if (c === 'medium') return 'bg-accent-yellow/20 text-accent-yellow'
+    return 'bg-border text-text-secondary'
+  }
+
+  return (
+    <div className="card">
+      <h2 className="text-xl font-semibold mb-4">Strategy Recommendations</h2>
+
+      <div className="flex gap-2 mb-4">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={clsx(
+              'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+              activeTab === tab.key
+                ? 'bg-accent-blue/20 text-accent-blue'
+                : 'text-text-tertiary hover:text-text-secondary hover:bg-surface-hover'
+            )}
+          >
+            <tab.icon className="w-4 h-4" />
+            {tab.label}
+            <span className="text-xs text-text-tertiary hidden sm:inline">({tab.desc})</span>
+          </button>
+        ))}
+      </div>
+
+      {strategy ? (
+        <div className="space-y-4">
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-background-secondary rounded-lg p-4 text-center">
+              <div className="text-xs text-text-tertiary mb-1">Entry Price</div>
+              <div className="text-xl font-bold text-accent-blue font-mono">
+                ${strategy.entry_price?.toFixed(2) ?? '--'}
+              </div>
+            </div>
+            <div className="bg-background-secondary rounded-lg p-4 text-center">
+              <div className="text-xs text-text-tertiary mb-1">Stop-Loss</div>
+              <div className="text-xl font-bold text-accent-red font-mono">
+                ${strategy.stop_loss?.toFixed(2) ?? '--'}
+              </div>
+            </div>
+            <div className="bg-background-secondary rounded-lg p-4 text-center">
+              <div className="text-xs text-text-tertiary mb-1">Target</div>
+              <div className="text-xl font-bold text-accent-green font-mono">
+                ${strategy.take_profit?.toFixed(2) ?? '--'}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {strategy.confidence && (
+              <span className={clsx('text-sm px-3 py-1 rounded-full font-medium', confidenceClass(strategy.confidence))}>
+                {strategy.confidence} confidence
+              </span>
+            )}
+            {strategy.risk_reward_ratio && (
+              <span className="text-sm text-text-secondary">
+                Risk/Reward: 1:{strategy.risk_reward_ratio.toFixed(1)}
+              </span>
+            )}
+          </div>
+
+          {strategy.rationale && (
+            <p className="text-sm text-text-secondary leading-relaxed">{strategy.rationale}</p>
+          )}
+        </div>
+      ) : (
+        <p className="text-sm text-text-tertiary">No {activeTab} strategy available. Run daily analysis first.</p>
+      )}
+    </div>
+  )
+}
+
+function StockNewsSection({ news }: { news: NewsArticle[] }) {
+  const sentimentClass = (s: string | null) => {
+    if (s === 'positive') return 'bg-accent-green/20 text-accent-green'
+    if (s === 'negative') return 'bg-accent-red/20 text-accent-red'
+    return 'bg-border text-text-secondary'
+  }
+
+  return (
+    <div className="card">
+      <h2 className="text-xl font-semibold mb-4">Recent News</h2>
+      <div className="space-y-3">
+        {news.map((article) => (
+          <a
+            key={article.id}
+            href={article.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-start gap-3 p-3 rounded-lg bg-background-secondary hover:bg-surface-hover transition-colors group"
+          >
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-text-primary group-hover:text-accent-blue">
+                {article.title}
+              </p>
+              <div className="flex items-center gap-2 mt-1.5">
+                {article.sentiment && (
+                  <span className={clsx('text-xs px-2 py-0.5 rounded-full', sentimentClass(article.sentiment))}>
+                    {article.sentiment}
+                  </span>
+                )}
+                {article.source && (
+                  <span className="text-xs text-text-tertiary">{article.source}</span>
+                )}
+                {article.published_at && (
+                  <span className="text-xs text-text-tertiary">
+                    {new Date(article.published_at).toLocaleDateString()}
+                  </span>
+                )}
+              </div>
+              {article.impact_explanation && (
+                <p className="text-xs text-text-tertiary mt-1.5">{article.impact_explanation}</p>
+              )}
+            </div>
+            <ExternalLink className="w-4 h-4 text-text-tertiary flex-shrink-0 mt-1" />
+          </a>
+        ))}
+      </div>
     </div>
   )
 }

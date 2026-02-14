@@ -6,35 +6,43 @@ from app.schemas.schemas import (
     CompanyCreate,
     CompanyResponse,
     CompanyWithMetrics,
-    
+
     # Fundamentals
     FundamentalBase,
     FundamentalResponse,
-    
+
     # Prices
     PriceBase,
     PriceResponse,
-    
+
     # Screener
     ScreenerFilter,
     ScreenerRequest,
     ScreenerResult,
     ScreenerResponse,
-    
+
     # Saved Screens
     ScreenBase,
     ScreenCreate,
     ScreenResponse,
-    
+
     # Watchlist
     WatchlistBase,
     WatchlistCreate,
     WatchlistResponse,
-    
+
     # Metrics
     MetricValue,
     CompanyMetrics,
-    
+
+    # Daily Brief
+    DailyBriefResponse,
+    DailyPickResponse,
+    StrategyResponse,
+    StockStrategyResponse,
+    NewsArticleResponse,
+    MarketRiskResponse,
+
     # Health
     HealthCheck,
 )
@@ -60,5 +68,11 @@ __all__ = [
     "WatchlistResponse",
     "MetricValue",
     "CompanyMetrics",
+    "DailyBriefResponse",
+    "DailyPickResponse",
+    "StrategyResponse",
+    "StockStrategyResponse",
+    "NewsArticleResponse",
+    "MarketRiskResponse",
     "HealthCheck",
 ]
