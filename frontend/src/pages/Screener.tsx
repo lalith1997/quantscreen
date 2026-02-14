@@ -179,9 +179,9 @@ function ResultRow({ result }: { result: ScreenerResult }) {
       </td>
       <td className="py-3 px-2 text-center">
         {mScoreFlag ? (
-          <AlertTriangle className="w-4 h-4 text-accent-yellow inline" title="M-Score Warning" />
+          <span title="M-Score Warning"><AlertTriangle className="w-4 h-4 text-accent-yellow inline" /></span>
         ) : (
-          <CheckCircle className="w-4 h-4 text-accent-green inline" title="Clean" />
+          <span title="Clean"><CheckCircle className="w-4 h-4 text-accent-green inline" /></span>
         )}
       </td>
       <td className="py-3 px-2">
