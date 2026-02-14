@@ -1,12 +1,9 @@
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { 
-  ArrowLeft, 
-  TrendingUp, 
-  TrendingDown, 
+import {
+  ArrowLeft,
   AlertTriangle,
   CheckCircle,
-  Shield,
   Loader2,
 } from 'lucide-react'
 import { clsx } from 'clsx'
