@@ -214,8 +214,8 @@ export const dailyBriefApi = {
     return response.data
   },
 
-  trigger: async () => {
-    const response = await api.post('/daily-brief/trigger')
+  trigger: async (force: boolean = false) => {
+    const response = await api.post(`/daily-brief/trigger${force ? '?force=true' : ''}`)
     return response.data
   },
 }

@@ -496,7 +496,7 @@ export default function DailyBrief() {
   })
 
   const triggerMutation = useMutation({
-    mutationFn: () => dailyBriefApi.trigger(),
+    mutationFn: () => dailyBriefApi.trigger(true),
     onSuccess: () => {
       // Poll for results after triggering
       setTimeout(() => queryClient.invalidateQueries({ queryKey: ['daily-brief'] }), 5000)
