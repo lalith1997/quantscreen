@@ -16,7 +16,7 @@ from app.models import (
     PortfolioAlert,
     EarningsEvent,
 )
-from app.services.data_providers import FMPProvider
+from app.services.data_providers import YFinanceProvider
 from app.services.formula_engine import FormulaEngine
 from app.services.technical import calculate_rsi, calculate_macd, calculate_sma
 from app.services.rationale_helpers import explain_metric
@@ -36,12 +36,12 @@ async def get_holdings_with_prices(db: Session) -> list[dict]:
     if not holdings:
         return []
 
-    fmp = FMPProvider()
+    yf_prov = YFinanceProvider()
     results = []
 
     for h in holdings:
         try:
-            quote = await fmp.get_quote(h.ticker)
+            quote = await yf_prov.get_quote(h.ticker)
             current_price = quote.get("price") if quote else None
             change_pct = quote.get("changesPercentage") if quote else None
 
@@ -89,7 +89,7 @@ async def get_holdings_with_prices(db: Session) -> list[dict]:
                 "todays_change_pct": None,
             })
 
-    await fmp.close()
+    await yf_prov.close()
     return results
 
 
@@ -129,17 +129,17 @@ async def run_portfolio_analysis(db: Session):
 
         async with semaphore:
             try:
-                fmp = FMPProvider()
+                yf_prov = YFinanceProvider()
                 ticker = holding.ticker
                 shares = float(holding.shares)
                 cost_basis = float(holding.avg_cost_basis)
 
                 # Get quote
-                quote = await fmp.get_quote(ticker)
+                quote = await yf_prov.get_quote(ticker)
                 current_price = quote.get("price") if quote else None
 
                 if not current_price:
-                    await fmp.close()
+                    await yf_prov.close()
                     return
 
                 market_val = shares * current_price
@@ -152,7 +152,7 @@ async def run_portfolio_analysis(db: Session):
                 z_score = None
                 m_score_flag = None
                 try:
-                    data = await fmp.build_fundamental_data(ticker)
+                    data = await yf_prov.build_fundamental_data(ticker)
                     if data:
                         formulas = FormulaEngine.calculate_all(data)
                         if formulas.get("piotroski"):
@@ -169,7 +169,7 @@ async def run_portfolio_analysis(db: Session):
                 macd_val = None
                 sma50_val = None
                 try:
-                    prices_raw = await fmp.get_historical_prices(
+                    prices_raw = await yf_prov.get_historical_prices(
                         ticker,
                         from_date=today - timedelta(days=150),
                         to_date=today,
@@ -183,7 +183,7 @@ async def run_portfolio_analysis(db: Session):
                 except Exception as e:
                     print(f"  Portfolio technicals error for {ticker}: {e}")
 
-                await fmp.close()
+                await yf_prov.close()
 
                 # Store holding detail
                 gain_loss_pct = ((current_price - cost_basis) / cost_basis * 100) if cost_basis > 0 else 0

@@ -9,7 +9,7 @@ from datetime import date, timedelta
 from sqlalchemy.orm import Session
 
 from app.models import StockStrategy, DailyPick
-from app.services.data_providers import fmp_provider, FMPProvider
+from app.services.data_providers import YFinanceProvider
 from app.services.technical import (
     calculate_rsi,
     calculate_macd,
@@ -37,13 +37,13 @@ async def generate_strategies_for_picks(db: Session, run_id: int):
     async def process_ticker(ticker: str):
         async with semaphore:
             try:
-                fmp = FMPProvider()
-                prices_raw = await fmp.get_historical_prices(
+                yf_prov = YFinanceProvider()
+                prices_raw = await yf_prov.get_historical_prices(
                     ticker,
                     from_date=today - timedelta(days=150),
                     to_date=today,
                 )
-                await fmp.close()
+                await yf_prov.close()
 
                 if not prices_raw or len(prices_raw) < 30:
                     return []

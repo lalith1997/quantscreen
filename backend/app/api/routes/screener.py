@@ -19,7 +19,7 @@ from app.schemas import (
     ScreenCreate,
     ScreenResponse,
 )
-from app.services.data_providers import fmp_provider
+from app.services.data_providers import yfinance_provider
 from app.services.formula_engine import FormulaEngine
 
 router = APIRouter(prefix="/screener", tags=["Screener"])
@@ -291,7 +291,7 @@ async def run_screen(
 
     for company in companies[:50]:  # Limit to 50 for live API calls
         try:
-            fundamental_data = await fmp_provider.build_fundamental_data(company.ticker)
+            fundamental_data = await yfinance_provider.build_fundamental_data(company.ticker)
 
             if not fundamental_data:
                 continue

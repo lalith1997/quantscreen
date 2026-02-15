@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
 from app.models import Company, DailyAnalysisRun, DailyPick
-from app.services.data_providers import fmp_provider, FMPProvider
+from app.services.data_providers import YFinanceProvider
 from app.services.formula_engine import FormulaEngine
 from app.api.routes.screener import PRESET_SCREENS
 
@@ -167,24 +167,23 @@ async def run_daily_analysis(force: bool = False):
 
 async def _fetch_and_calculate_all(
     companies: list[Company],
-    concurrency: int = 2,
+    concurrency: int = 4,
 ) -> dict[str, dict]:
     """
     Fetch fundamental data and calculate all metrics for every company.
-    Uses a semaphore to respect FMP API rate limits.
-    Processes in small batches with delays to avoid 429 errors.
+    Uses yfinance (free, no API key) instead of FMP to avoid rate limits.
+    Processes in batches with delays to respect Yahoo Finance rate limits.
     """
     results = {}
-    batch_size = 5  # Process 5 stocks, then pause
+    batch_size = 10
+    yf_provider = YFinanceProvider()
 
     async def process_one(company: Company, semaphore: asyncio.Semaphore):
         async with semaphore:
             try:
                 # Skip fundamental formulas for ETFs (no income statements)
                 if company.is_etf:
-                    fmp = FMPProvider()
-                    quote = await fmp.get_quote(company.ticker)
-                    await fmp.close()
+                    quote = await yf_provider.get_quote(company.ticker)
                     if quote:
                         results[company.ticker] = {
                             "company": company,
@@ -198,9 +197,7 @@ async def _fetch_and_calculate_all(
                         }
                     return
 
-                fmp = FMPProvider()
-                data = await fmp.build_fundamental_data(company.ticker)
-                await fmp.close()
+                data = await yf_provider.build_fundamental_data(company.ticker)
 
                 if data:
                     formulas = FormulaEngine.calculate_all(data)
@@ -214,17 +211,20 @@ async def _fetch_and_calculate_all(
             except Exception as e:
                 print(f"  Error processing {company.ticker}: {e}")
 
-    # Process in batches to stay under FMP rate limits
+    # Process in batches to respect Yahoo Finance rate limits
     semaphore = asyncio.Semaphore(concurrency)
     for i in range(0, len(companies), batch_size):
         batch = companies[i : i + batch_size]
         tasks = [process_one(c, semaphore) for c in batch]
         await asyncio.gather(*tasks, return_exceptions=True)
-        # Brief pause between batches to avoid 429s
+        # Pause between batches to avoid 429s from Yahoo Finance
         if i + batch_size < len(companies):
-            await asyncio.sleep(1.0)
-        if (i + batch_size) % 50 == 0:
-            print(f"  Processed {min(i + batch_size, len(companies))}/{len(companies)} companies...")
+            await asyncio.sleep(2.0)
+        processed = min(i + batch_size, len(companies))
+        if processed % 50 == 0 or processed == len(companies):
+            print(f"  Processed {processed}/{len(companies)} companies...")
+
+    await yf_provider.close()
     return results
 
 
