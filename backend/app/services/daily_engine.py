@@ -41,13 +41,21 @@ async def run_daily_analysis(force: bool = False):
                 return
 
         # Delete any previous runs for today (allow re-runs)
-        db.query(DailyAnalysisRun).filter(
-            DailyAnalysisRun.run_date == today,
-        ).delete(synchronize_session=False)
-        # Also delete old picks for today so they get regenerated
-        db.query(DailyPick).filter(
-            DailyPick.run_date == today,
-        ).delete(synchronize_session=False)
+        old_runs = (
+            db.query(DailyAnalysisRun)
+            .filter(DailyAnalysisRun.run_date == today)
+            .all()
+        )
+        if old_runs:
+            old_run_ids = [r.id for r in old_runs]
+            # Delete picks first (child records)
+            db.query(DailyPick).filter(
+                DailyPick.run_id.in_(old_run_ids)
+            ).delete(synchronize_session=False)
+            # Then delete the runs
+            db.query(DailyAnalysisRun).filter(
+                DailyAnalysisRun.run_date == today
+            ).delete(synchronize_session=False)
         db.commit()
 
         # Create new run record
