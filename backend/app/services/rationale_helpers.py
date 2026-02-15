@@ -225,9 +225,14 @@ def plain_signal(indicator: str, value, context: dict | None = None) -> str:
     elif indicator == "atr":
         if value is None:
             return ""
+        volatility_note = (
+            "That's pretty volatile — expect big swings."
+            if value > 5
+            else "That's moderate movement."
+        )
         return (
             f"This stock typically moves about ${value:.2f} per day. "
-            f"{'That\\'s pretty volatile — expect big swings.' if value > 5 else 'That\\'s moderate movement.'}"
+            f"{volatility_note}"
         )
 
     return ""
