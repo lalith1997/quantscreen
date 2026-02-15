@@ -16,32 +16,37 @@ from app.services.formula_engine import FormulaEngine
 from app.api.routes.screener import PRESET_SCREENS
 
 
-async def run_daily_analysis():
+async def run_daily_analysis(force: bool = False):
     """
     Main daily analysis orchestrator. Called by APScheduler at 6 AM ET.
     Can also be triggered manually via POST /api/daily-brief/trigger.
+    Use force=True to re-run even if already completed today.
     """
     db = SessionLocal()
     try:
         today = date.today()
 
-        # Check if already completed today
-        existing = (
-            db.query(DailyAnalysisRun)
-            .filter(
-                DailyAnalysisRun.run_date == today,
-                DailyAnalysisRun.status == "completed",
+        # Check if already completed today (skip check if forced)
+        if not force:
+            existing = (
+                db.query(DailyAnalysisRun)
+                .filter(
+                    DailyAnalysisRun.run_date == today,
+                    DailyAnalysisRun.status == "completed",
+                )
+                .first()
             )
-            .first()
-        )
-        if existing:
-            print(f"Daily analysis already completed for {today}")
-            return
+            if existing:
+                print(f"Daily analysis already completed for {today}")
+                return
 
-        # Delete any failed/running runs for today (allow re-runs)
+        # Delete any previous runs for today (allow re-runs)
         db.query(DailyAnalysisRun).filter(
             DailyAnalysisRun.run_date == today,
-            DailyAnalysisRun.status != "completed",
+        ).delete(synchronize_session=False)
+        # Also delete old picks for today so they get regenerated
+        db.query(DailyPick).filter(
+            DailyPick.run_date == today,
         ).delete(synchronize_session=False)
         db.commit()
 

@@ -209,11 +209,11 @@ async def get_todays_picks(
 
 
 @router.post("/trigger")
-async def trigger_analysis():
-    """Manually trigger a daily analysis run."""
+async def trigger_analysis(force: bool = False):
+    """Manually trigger a daily analysis run. Use ?force=true to re-run even if already completed today."""
     from app.services.daily_engine import run_daily_analysis
 
-    asyncio.create_task(run_daily_analysis())
+    asyncio.create_task(run_daily_analysis(force=force))
     return {
         "status": "triggered",
         "message": "Daily analysis started in background. Check GET /api/daily-brief for results.",
