@@ -167,18 +167,17 @@ async def run_daily_analysis(force: bool = False):
 
 async def _fetch_and_calculate_all(
     companies: list[Company],
-    concurrency: int = 5,
+    concurrency: int = 2,
 ) -> dict[str, dict]:
     """
     Fetch fundamental data and calculate all metrics for every company.
     Uses a semaphore to respect FMP API rate limits.
+    Processes in small batches with delays to avoid 429 errors.
     """
-    from app.core.config import settings
-
-    semaphore = asyncio.Semaphore(settings.fmp_rate_limit_concurrency)
     results = {}
+    batch_size = 5  # Process 5 stocks, then pause
 
-    async def process_one(company: Company):
+    async def process_one(company: Company, semaphore: asyncio.Semaphore):
         async with semaphore:
             try:
                 # Skip fundamental formulas for ETFs (no income statements)
@@ -215,8 +214,17 @@ async def _fetch_and_calculate_all(
             except Exception as e:
                 print(f"  Error processing {company.ticker}: {e}")
 
-    tasks = [process_one(c) for c in companies]
-    await asyncio.gather(*tasks, return_exceptions=True)
+    # Process in batches to stay under FMP rate limits
+    semaphore = asyncio.Semaphore(concurrency)
+    for i in range(0, len(companies), batch_size):
+        batch = companies[i : i + batch_size]
+        tasks = [process_one(c, semaphore) for c in batch]
+        await asyncio.gather(*tasks, return_exceptions=True)
+        # Brief pause between batches to avoid 429s
+        if i + batch_size < len(companies):
+            await asyncio.sleep(1.0)
+        if (i + batch_size) % 50 == 0:
+            print(f"  Processed {min(i + batch_size, len(companies))}/{len(companies)} companies...")
     return results
 
 
